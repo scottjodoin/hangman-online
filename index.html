@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+  <head>
+    <meta charset="utf-8">
+    <link rel="stylesheet" type="text/css" href="./global.css">
+    <link rel="stylesheet" type="text/css" href="./index.css">
+    <link rel="stylesheet" href="./jkeyboard.css">
+  <title>Hangman - Free game for up to 10 players!</title>
+  </head>
+  <body>
+    <!-- Header -->
+    <header class="g-header">
+      <span class="g-title-container">
+        <h1>Hangman</h1>
+        <p class="g-player-count">Players online:</p>
+      </span>
+      <span class="g-leave-wrapper">
+        <p><a href="">Leave game</a></p>
+      </span>
+      <span class="g-error-wrapper">
+        <p>Here is a message</p>
+      </span>
+    </header>
+    <!-- Content -->
+    <div id="game-wrapper" class="g-content-wrapper">
+      <!-- Left -->
+      <span id="left-container">
+        <div id="name-container" class="g-container">
+          <ul id="name-list">
+            <li>player 1</li>
+            <li>player 2</li>
+            <li>player 3</li>
+          </ul>
+        </div>
+        <div id="hangman-wrapper" class="g-container">
+          <img id="hangman-image" src="https://images-na.ssl-images-amazon.com/images/I/41I%2BvcnXn-L.png">
+        </div>
+      </span>
+
+      <!-- Right -->
+      <span id="right-container" >
+        <div id="phrase-container" class="g-container">
+          <form class="g-large-input" method="post">
+            <input id="hint-input" type="text"
+            autocomplete="off" required="true" maxlength="27"
+            name="hint" placeholder="Hint or category" />
+            <input id="phrase-input" type="text"
+            autocomplete="off" required="true" maxlength="27"
+            name="phrase" placeholder="Word or phrase"/>
+            <input id="submit-button" type="submit" value="✔️" />
+          </form>
+        </div>
+        <div id="keyboard-container" class="g-container">
+          <div id="keyboard"></div>
+        </div>
+      </span>
+    </div>
+
+    <!-- Footer -->
+    <footer class="g-footer">
+      <p><a href="">About me..</a></p>
+    </footer>
+    <script src="http://code.jquery.com/jquery-1.10.1.min.js"></script>
+    <script src="./jkeyboard.js"></script>
+    <script>
+      $(document).ready(function() {
+
+        var keyboardOnClick = function(letter){
+          $('input#phrase-input').val(letter);
+        };
+
+        //Modified jkeyboard to accept a callback function
+        $('#keyboard').jkeyboard({
+          callBack: keyboardOnClick,
+        });
+      });
+
+    </script>
+  </body>
+</html>

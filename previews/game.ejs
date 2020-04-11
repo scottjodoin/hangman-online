@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+  <head>
+    <meta charset="utf-8">
+    <title>Hangman Game for up to 10 players</title>
+    <link rel="stylesheet" href="https://ejs.co/assets/css/styles-2.css">
+  </head>
+  <body>
+    <!-- HEADER -->
+    <div class="header">
+      <div class="title-area">
+        <h1>Hangman</h1>
+        <p class="players-online">Players online: </p>
+      </div>
+      <div class="error-messages" display="none">
+        Error message
+      </div>
+      <div class="leave-game-area">
+        <p id="leave-game">Leave game<p>
+      </div>
+    </div>
+    <!-- MAIN -->
+    <div class="game-container">
+      <div class="top-display">
+        <div class="left-image-container">
+          <img src="./public/android-chrome-192x192.png">
+        </div>
+        <div class="right-word-container">
+          <div class="upper-word-display">
+            <div class="host-editor" display="none">
+              <form class="host-editor-form" method="post">
+                <label for="hint">Category or Hint</label>
+                <input type="text" name="hint" placeholder="e.g. Nursery Rhymes" disabled/>
+                <label for="phrase">Word or Phrase</label>
+                <input type="text" name="phrase" value="e.g. The cow jumped over the moon." disabled/>
+                <input type="submit" value="Submit" disabled/>
+              </form>
+            </div>
+            <div class="guesser-view">
+              <p class="hint">Nursery Rhymes</p>
+              <p class="phrase">The cow jumped over the moon</p>
+            </div>
+          </div>
+          <div class="lower-keyboard">
+            <!-- https://www.jqueryscript.net/other/Simple-On-Screen-Visual-Keyboard-with-jQuery-jkeyboard.html -->
+            <div id="row1" class="keyboard-row-container">
+              <p id="key-q" class="key">Q</p>
+              <p id="key-w" class="key">W</p>
+              <p id="key-e" class="key">E</p>
+              <p id="key-r" class="key">R</p>
+              <p id="key-t" class="key">T</p>
+              <p id="key-y" class="key">Y</p>
+              <p id="key-u" class="key">U</p>
+              <p id="key-i" class="key">I</p>
+              <p id="key-o" class="key">O</p>
+              <p id="key-p" class="key">P</p>
+            </div>
+            <div id="row2" class="keyboard-row-container">
+              <p id="key-a" class="key">A</p>
+              <p id="key-s" class="key">S</p>
+              <p id="key-d" class="key">D</p>
+              <p id="key-f" class="key">F</p>
+              <p id="key-g" class="key">G</p>
+              <p id="key-h" class="key">H</p>
+              <p id="key-j" class="key">J</p>
+              <p id="key-k" class="key">K</p>
+              <p id="key-l" class="key">L</p>
+            </div>
+            <div id="row3" class="keyboard-row-container">
+              <p id="key-z" class="key">Z</p>
+              <p id="key-x" class="key">X</p>
+              <p id="key-c" class="key">C</p>
+              <p id="key-v" class="key">V</p>
+              <p id="key-b" class="key">B</p>
+              <p id="key-n" class="key">N</p>
+              <p id="key-m" class="key">M</p>
+              <p id="key-com">COM</p>
+              <p id="key-per">PER</p>
+              <p id="key-spc">SPC</p>
+            </div>
+          </div>
+          <div>
+        </div>
+      </div>
+    </div>
+    <div class="bottom-display-users">
+      <ul>
+        <li>Player 1</li>
+        <li>Player 2</li>
+        <li>Player 3</li>
+        <li>Player 4</li>
+      </ul>
+    </div>
+    <!-- Footer -->
+  </body>
+</html>

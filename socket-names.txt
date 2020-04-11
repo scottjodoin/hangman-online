@@ -1,0 +1,21 @@
+*note, initial http request not included here.
+all-current-info(phase, playerIDs, playerNicknames, playerColors, hostID, guesserID, renderedPhrase, hint, correct, incorrect)
+
+from client
+
+letter(letter, cookie)
+host-try-start(phrase,hint,maxplayer,cookie)
+player-remove(playerID,cookie)
+leave-game(cookie)
+pass(cookie)
+
+from server
+
+game-start(hint, hostID, guesserID, renderedPhrase)
+add-player(id, nickname, color, guesserIndex)
+remove-player(id, guesserIndex)
+correct-update(letter, index, guesserIndex)
+incorrect-update(letter, index, guesserIndex)
+game-over-lose(answer, newHostID)
+game-over-win(newHostID)
+deny-host-error(message)

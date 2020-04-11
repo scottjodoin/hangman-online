@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+  <head>
+    <meta charset="utf-8">
+    <title>Hangman Game </title>
+    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
+    <link rel="manifest" href="/site.webmanifest">
+    <link rel="stylesheet" href="http://en.battleship-game.org/static/build/1009/css/style.css" integrity="sha384-Vkoo8x4CGsO3+Hhxv8T/Q5PaXtkKtu6ug5TOeNV6gBiFeWPGFN9MuhOf23Q9Ifjh" crossorigin="anonymous">
+  </head>
+  <body>
+    <h1>Hangman Game</h1>
+    <p>This is a hangman game for up to 10 players!</p>
+    <form method="POST">
+      <label for="hint">Category or Hint</label>
+      <input type="text" id="hint" name="hint" placeholder="Things Parents Say or Type of Fruit" required />
+      <label for="phrase">Phrase</label>
+      <input type="text" id="phrase" name="phrase" placeholder="e.g. Eat your greens and veggies, kids! or banana" required />
+      <label for="max-player">Max number of players (2-10):</label>
+      <input type="number" id="maxPlayers" name="maxPlayers" min="2" max="10" value="4" required />
+      <button type="submit">Start a New Game</button>
+    </form>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
+<script>
+$(document).ready(function(){
+  $('form').on('submit', function(){
+      var
+  });
+
+});
+
+</script>
+
+  </body>
+</html>

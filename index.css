@@ -1,0 +1,112 @@
+body {
+  font-size: 0.7rem;
+  background-color: #EDE7F6;
+}
+header{
+  padding: 10px 20px;
+  overflow: auto;
+  zoom: 1;
+}
+  .g-title-container{
+    float: left;
+    width: 30%;
+    min-width: 200px;
+  }
+    h1{
+      font-weight: bold;
+      font-size: 2rem;
+    }
+    .g-player-count{
+      float: left;
+    }
+  .g-error-wrapper{
+    overflow: hidden;
+    text-align: center;
+    width: 30%;
+    min-width:160px;
+  }
+  .g-leave-wrapper{
+    text-align: right;
+    float:right;
+    width: 30%;
+    min-width: 200px;
+  }
+div{}
+span{}
+p{
+  padding: 5px 10px;
+}
+ul{
+  padding: 5px 10px;
+}
+li{
+}
+.g-content-wrapper{
+  padding: 0px 10%;
+  overflow: auto;
+  zoom: 1;
+}
+  .g-container{
+    background-color: antiquewhite;
+    padding: 10px;
+    border: 0.3rem solid grey;
+    border-radius: 8px;
+    margin: 4px;
+  }
+
+.g-large-input{}
+input{
+  display: bloack;
+  border: 0;
+  background: transparent;
+}
+
+footer{
+  padding: 10px 20px;
+}
+
+/*TODO: http://learnlayout.com/media-queries.html */
+#left-container{
+  float:left;
+  width:30%;
+}
+  #name-container{
+    width: auto;
+  }
+    #name-list{
+    }
+  #hangman-wrapper{
+    text-align: center;
+    vertical-align: middle;
+  }
+    #hangman-image{
+      width: 100%;
+    }
+#right-container{
+  float:left;
+  width: 70%;
+}
+  #phrase-container{
+    position: relative;
+    text-transform: uppercase;
+  }
+    #hint-input{
+      font-size: 1rem;
+      width:50%;
+      text-transform: inherit;
+    }
+    #phrase-input{
+      font-size: 2rem;
+      width: 100%;
+      text-transform: inherit;
+    }
+    #submit-button{
+      position: absolute;
+      top: 5px;
+      right: 5px;
+      top: 0;
+      font-size: 1.8rem;
+      width: 3rem;
+    }
+  #keyboard-container{
+  }

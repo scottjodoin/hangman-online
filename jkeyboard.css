@@ -1,0 +1,38 @@
+.jkeyboard {
+  display: inline-block;
+}
+.jkeyboard, .jkeyboard .jline, .jkeyboard .jline ul {
+  display: block;
+  margin: 0;
+  padding: 0;
+}
+.jkeyboard .jline {
+  text-align: center;
+  margin-left: -14px;
+}
+.jkeyboard .jline ul li {
+  font-size: 1.5rem;
+  display: inline-block;
+  border: 2px solid grey;
+  margin: 10px 0 1px 14px;
+  border-radius: 5px;
+  width: 52px;
+  height: 52px;
+  box-sizing: border-box;
+  text-align: center;
+  line-height: 52px;
+  overflow: hidden;
+  cursor: pointer;
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  -khtml-user-select: none;
+  -moz-user-select: -moz-none;
+  -ms-user-select: none;
+  user-select: none;
+}
+.jkeyboard .jline ul li.uppercase {
+  text-transform: uppercase;
+}
+.jkeyboard .jline ul li:hover, .jkeyboard .jline ul li:active {
+  background-color: grey;
+}
