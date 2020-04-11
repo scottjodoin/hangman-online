@@ -2,9 +2,10 @@
 <html lang="en" dir="ltr">
   <head>
     <meta charset="utf-8">
-    <link rel="stylesheet" type="text/css" href="./global.css">
-    <link rel="stylesheet" type="text/css" href="./index.css">
-    <link rel="stylesheet" href="./jkeyboard.css">
+    <link rel="stylesheet" type="text/css" href="/css/global.css">
+    <link rel="stylesheet" type="text/css" href="/css/index.css">
+    <link rel="stylesheet" href="/css/jkeyboard.css">
+    <script src="/js/svg-inject.js"></script>
   <title>Hangman - Free game for up to 10 players!</title>
   </head>
   <body>
@@ -33,7 +34,7 @@
           </ul>
         </div>
         <div id="hangman-wrapper" class="g-container">
-          <img id="hangman-image" src="https://images-na.ssl-images-amazon.com/images/I/41I%2BvcnXn-L.png">
+          <img id="hangman-image" src ="/img/hangman.svg"/>
         </div>
       </span>
 
@@ -60,21 +61,15 @@
     <footer class="g-footer">
       <p><a href="">About me..</a></p>
     </footer>
-    <script src="http://code.jquery.com/jquery-1.10.1.min.js"></script>
-    <script src="./jkeyboard.js"></script>
+    <script>SVGInject(document.getElementById('hangman-image'));</script>
+    <script src="/socket.io/socket.io.js"></script>
     <script>
-      $(document).ready(function() {
-
-        var keyboardOnClick = function(letter){
-          $('input#phrase-input').val(letter);
-        };
-
-        //Modified jkeyboard to accept a callback function
-        $('#keyboard').jkeyboard({
-          callBack: keyboardOnClick,
-        });
-      });
-
+      var socket = io('http://localhost:3000');
     </script>
+    <script src="http://code.jquery.com/jquery-1.10.1.min.js"></script>
+    <link rel="stylesheet" type="text/css" href="css/jquery.svg.css">
+    <script type="text/javascript" src="js/jquery.svg.js"></script>
+    <script src="/js/jkeyboard.js"></script>
+    <script src="/js/hangman.js"></script>
   </body>
 </html>

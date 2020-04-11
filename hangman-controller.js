@@ -4,7 +4,7 @@ let urlencodedParser = bodyParser.urlencoded({extended: false});
 let utilFunctions = require('./util-functions'); //result = utilFunctions.binarySearch(wordArray, needle);
 let hash = require('object-hash');
 let cookieParser = require('cookie-parser');
-let socket = require('socket.io');
+
 const SERVER_SALT = Math.random().toString().substring(2); //used for encrypting cookies
 const COOKIE_OPTIONS = {
   maxAge: 15 * 60 * 1000, //15 minute expiry
@@ -16,8 +16,7 @@ const GAME_PHASE = {
 }
 
 //main
-module.exports = function(app, wordArray) {
-
+module.exports = function(app, io, wordArray) {
 //homepage
 app.get('/', function(req, res){
   res.sendFile(__dirname +  '/index.html');
