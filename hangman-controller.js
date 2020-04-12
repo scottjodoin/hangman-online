@@ -14,7 +14,6 @@ const GAME_PHASE = {
   SELECTION: 0,
   GUESSING: 1,
 }
-
 //main
 module.exports = function(app, io, wordArray) {
 //homepage
@@ -43,12 +42,12 @@ app.post('/', urlencodedParser, function(req, res){
 
   //make player 1 cookie with gameID
   player1 = new Player(gameID, 0, )
-  res.cookie("token", playerHash, COOKIE_OPTIONS);
+  res.cookie("token", player1.hash, COOKIE_OPTIONS);
 
   //if it is, then create a game!
   game = {
     id: gameID,
-    playerQueue: [playerHash],
+    playerQueue: [player1.hash],
     guessedLetters: "",
     phrase: phrase,
     hint: hint,
