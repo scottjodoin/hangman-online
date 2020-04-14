@@ -37,7 +37,7 @@ app.post('/', urlencodedParser, function(req, res){
   maxPlayers = req.body.hint;
 
   //TODO: create random gameId
-  gameId = "desBeD";
+  gameId = generateGameId();
 
   //TODO: check to see if gameId is available
 
@@ -57,18 +57,19 @@ app.post('/', urlencodedParser, function(req, res){
     gamePhase: GAME_PHASE.SELECTION,
     activeGuesser: -1 //active host assumed to be playerQueue[0]
   }
-  _games[gameId] = game;//TODO function gameSet(game)
+  setGame(game);
   stripped = strippedGameInfo(game);
+  resetPackage = {name:"reset-information", data:"stripped"};
   res.redirect('/' + gameId);
 });
 
 //gameId
-app.get("/:gameId([A-Za-z]{6})", function(req, res, next){
-  gameId = req.params.gameId;
+app.get("/:gameId([A-Za-z0-9]{6})", function(req, res, next){
+  gameId = req.params.gameId.toUpperCase();
   //If game does not exist, return to homepage
   //Else, join!
-  if (includesGameById(gameId)){
-    game = getGame(gameId);
+  if (databaseHasGameById(gameId)){
+    game = fetchGame(gameId);
     stripped = strippedGameInfo(game);
     res.json(stripped);
   } else {
@@ -92,10 +93,23 @@ app.use(function (req, res, next) {
 //User Functions
 
 /**
+  * Genearates a 6-character game id to insert into the database
+  */
+function generateGameId(){
+  let gameId;
+  let isInDatabase = true;
+  while (isInDatabase){
+    gameId =  Math.random().toString(36).substring(3,9).toUpperCase();
+    isInDatabase = databaseHasGameById(gameId);
+  }
+  return gameId;
+}
+
+/**
   * Fetches game data from database
   * @param {string} gameId 6-letter string indicating gameId
   */
-function getGame(gameId){
+function fetchGame(gameId){
   return _games[gameId];
 }
 
@@ -111,7 +125,7 @@ function setGame(game){
   * Checks to see if database includes game.
   * @param {string} gameId the string gameId
   */
-function includesGameById(gameId){
+function databaseHasGameById(gameId){
   return !!_games[gameId]; //javascript double-bang
 }
 /**
