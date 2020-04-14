@@ -42,7 +42,7 @@ app.post('/', urlencodedParser, function(req, res){
   //TODO: check to see if gameId is available
 
   //make player 1 cookie with gameId
-  player1 = new Player(gameId, 0, "Paul")
+  player1 = new Player(gameId, 0, randomName())
   res.cookie("token", player1.hash, COOKIE_OPTIONS);
 
   //if it is, then create a game!
@@ -58,7 +58,8 @@ app.post('/', urlencodedParser, function(req, res){
     activeGuesser: -1 //active host assumed to be playerQueue[0]
   }
   _games[gameId] = game;//TODO function gameSet(game)
-  res.send(renderedPhrase(game));
+  stripped = strippedGameInfo(game);
+  res.json(stripped);
 });
 
 //gameId
@@ -131,9 +132,9 @@ function renderedPhrase(game){
 function strippedGameInfo(game){
   playerQueue = []
   game.playerQueue.forEach((item)=>{
-    playerQueue.append({
+    playerQueue.push({
       id:item.id,
-      nickname: item.nickname})
+      nickname: item.nickname});
   });
   phrase = renderedPhrase(game);
   return {
@@ -146,10 +147,16 @@ function strippedGameInfo(game){
   }
 }
 
+/**
+  * Returns random two-part name like "CornBuvettes"
+  */
 function randomName(){
+  var name;
   for(i=0; i<2;i++){
     index = Math.floor(wordArray.length * Math.random())
-    name = name + "_" + wordArray[index] || wordArray[index];
+    name = name || "";
+    word = wordArray[index];
+    name = name + word.charAt(0).toUpperCase() + word.slice(1);
   }
   return name;
 }
