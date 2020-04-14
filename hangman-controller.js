@@ -57,7 +57,7 @@ app.post('/', urlencodedParser, function(req, res){
     gamePhase: GAME_PHASE.SELECTION,
     activeGuesser: -1 //active host assumed to be playerQueue[0]
   }
-  setGame(game);
+  addGameToDatabase(game);
   stripped = strippedGameInfo(game);
   resetPackage = {name:"reset-information", data:"stripped"};
   res.redirect('/' + gameId);
@@ -69,7 +69,7 @@ app.get("/:gameId([A-Za-z0-9]{6})", function(req, res, next){
   //If game does not exist, return to homepage
   //Else, join!
   if (databaseHasGameById(gameId)){
-    game = fetchGame(gameId);
+    game = fetchGameFromDatabase(gameId);
     stripped = strippedGameInfo(game);
     res.json(stripped);
   } else {
@@ -109,7 +109,7 @@ function generateGameId(){
   * Fetches game data from database
   * @param {string} gameId 6-letter string indicating gameId
   */
-function fetchGame(gameId){
+function fetchGameFromDatabase(gameId){
   return _games[gameId];
 }
 
@@ -117,8 +117,15 @@ function fetchGame(gameId){
   * Initialize full game data into database
   * @param {object} game game instance containing game.gameId
   */
-function setGame(game){
+function addGameToDatabase(game){
   _games[game.gameId] = game;
+}
+
+/**
+  * Remove game from database
+  */
+function removeGameFromDatabase(gameId){
+  _games.splice(gameId);
 }
 
 /**
