@@ -4,7 +4,6 @@ let urlencodedParser = bodyParser.urlencoded({extended: false});
 let utilFunctions = require('./util-functions'); //result = utilFunctions.binarySearch(wordArray, needle);
 let hash = require('object-hash');
 let cookieParser = require('cookie-parser');
-
 const SERVER_SALT = Math.random().toString().substring(2); //used for encrypting cookies
 const COOKIE_OPTIONS = {
   maxAge: 15 * 60 * 1000, //15 minute expiry
@@ -14,6 +13,8 @@ const GAME_PHASE = {
   SELECTION: 0,
   GUESSING: 1,
 }
+
+let _games = {}
 //main
 module.exports = function(app, io, wordArray) {
 //homepage
@@ -35,35 +36,37 @@ app.post('/', urlencodedParser, function(req, res){
   hint = req.body.hint;
   maxPlayers = req.body.hint;
 
-  //TODO: create random gameID
-  gameID = "desBeD";
+  //TODO: create random gameId
+  gameId = "desBeD";
 
-  //TODO: check to see if gameID is available
+  //TODO: check to see if gameId is available
 
-  //make player 1 cookie with gameID
-  player1 = new Player(gameID, 0, )
+  //make player 1 cookie with gameId
+  player1 = new Player(gameId, 0, "Paul")
   res.cookie("token", player1.hash, COOKIE_OPTIONS);
 
   //if it is, then create a game!
+
   game = {
-    id: gameID,
-    playerQueue: [player1.hash],
-    guessedLetters: "",
+    gameId: gameId,
+    playerQueue: [player1],
+    guessedLetters: "ctr",
     phrase: phrase,
     hint: hint,
     maxPlayers: 4,
     gamePhase: GAME_PHASE.SELECTION,
     activeGuesser: -1 //active host assumed to be playerQueue[0]
   }
-  res.json(game);
+  _games[gameId] = game;//TODO function gameSet(game)
+  res.send(renderedPhrase(game));
 });
 
-//gameID
-app.get("/:gameID([A-Za-z]{6})", function(req, res){
-  gameID = req.params.gameID;
+//gameId
+app.get("/:gameId([A-Za-z]{6})", function(req, res){
+  gameId = req.params.gameId;
   //If game does not exist, return to homepage
   //Else, join!
-  res.send(gameID);
+  res.send(gameId);
 });
 
 app.get("/:wordTest", (req, res, next)=>{
@@ -79,7 +82,71 @@ app.use(function (req, res, next) {
 });
 
 //User Functions
-var randomName = function(){
+
+/**
+  * Fetches game data from database
+  * @param {string} gameId 6-letter string indicating gameId
+  */
+function getGame(gameId){
+  return _games[gameId];
+}
+
+/**
+  * Initialize full game data into database
+  * @param {object} game game instance containing game.gameId
+  */
+function setGame(game){
+  _games[game.gameId] = game;
+}
+
+/**
+  * Returns the currently rendered phrase of the game
+  * e.g. CATS + C, T = C_T_
+  * @param {object} game game pulled from database
+  */
+function renderedPhrase(game){
+  result = ""
+  phrase = game.phrase.toLowerCase();
+  for (var i = 0; i < phrase.length; i++){
+    c = phrase.charAt(i);
+    if (c.match(/[A-Za-z]/i)) {
+      if (game.guessedLetters.includes(c)){
+          result += c;
+      } else {
+        result += '_';
+      }
+    } else {
+      result += c;
+    }
+  }
+  return result;
+}
+
+/**
+  * strippedGameInfo returns necessary game info for client
+  * changes playerQueue to contiain id and nickname only
+  * renders the completed phrase - similar to code on client side.
+  * @param {dict} game the game info pulled from database.
+  */
+function strippedGameInfo(game){
+  playerQueue = []
+  game.playerQueue.forEach((item)=>{
+    playerQueue.append({
+      id:item.id,
+      nickname: item.nickname})
+  });
+  phrase = renderedPhrase(game);
+  return {
+    playerQueue: playerQueue,
+    phrase: phrase,
+    guessedLetters: game.guessedLetters,
+    hint: game.hint,
+    gamePhase: game.gamePhase,
+    activeGuesser: game.activeGuesser //active host assumed to be playerQueue[0]
+  }
+}
+
+function randomName(){
   for(i=0; i<2;i++){
     index = Math.floor(wordArray.length * Math.random())
     name = name + "_" + wordArray[index] || wordArray[index];
@@ -89,14 +156,16 @@ var randomName = function(){
 
 };
 
-var Player = function(gameID, accumulatorID, nickname){
-  this.hash = hash(gameID + accumulatorID + SERVER_SALT);
+var Player = function(gameId, accumulatorID, nickname){
+  this.hash = hash(gameId + accumulatorID + SERVER_SALT);
   this.id = accumulatorID;
   this.nickname = nickname;
 };
+
 var player1 = {hash: "20rsndjfaskbf32wasdfiawodjf", id: "145935", nickname: "Jimmy", color: "#444"};
 var player2 = {hash: "sadfh4asd9f0asdjf32Wsdfh32s", id: "347923", nickname: "Kim", color: "#222"};
 var players = {player1, player2};
+
 var Game = function(id, playerQueue, guessedLetters, phrase, hint, maxPlayers, activeGuesser){
   this.id = id;
   this.playerQueue = playerQueue;
