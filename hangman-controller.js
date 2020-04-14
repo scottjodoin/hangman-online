@@ -17,12 +17,18 @@ const GAME_PHASE = {
 let _games = {}
 //main
 module.exports = function(app, io, wordArray) {
-//homepage
+
+
+//html routing
 app.get('/', function(req, res){
   res.sendFile(__dirname +  '/index.html');
 });
 
 app.post('/', urlencodedParser, function(req, res){
+  //Get maxPlayers from form
+  var maxPlayers = req.body.maxPlayers;
+
+  /** TODO: This needs to go to a socket?
   phrase = req.body.phrase;
 
   //TODO: check if phrase is valid. If not, complain. Remove all uneeded characters.
@@ -34,12 +40,10 @@ app.post('/', urlencodedParser, function(req, res){
   }
 
   hint = req.body.hint;
-  maxPlayers = req.body.hint;
+  maxPlayers = req.body.hint; */
 
-  //TODO: create random gameId
+  //Create random gameId
   gameId = generateGameId();
-
-  //TODO: check to see if gameId is available
 
   //make player 1 cookie with gameId
   player1 = new Player(gameId, 0, randomName())
@@ -50,16 +54,16 @@ app.post('/', urlencodedParser, function(req, res){
   game = {
     gameId: gameId,
     playerQueue: [player1],
-    guessedLetters: "ctr",
-    phrase: phrase,
-    hint: hint,
-    maxPlayers: 4,
+    guessedLetters: "c",
+    phrase: "",
+    hint: "",
+    maxPlayers: maxPlayers,
     gamePhase: GAME_PHASE.SELECTION,
-    activeGuesser: -1 //active host assumed to be playerQueue[0]
+    activeGuesser: 0 //active host assumed to be playerQueue[0]
   }
+
   addGameToDatabase(game);
-  stripped = strippedGameInfo(game);
-  resetPackage = {name:"reset-information", data:"stripped"};
+
   res.redirect('/' + gameId);
 });
 
@@ -71,12 +75,12 @@ app.get("/:gameId([A-Za-z0-9]{6})", function(req, res, next){
   if (databaseHasGameById(gameId)){
     game = fetchGameFromDatabase(gameId);
     stripped = strippedGameInfo(game);
-    res.json(stripped);
+    res.render('game',{gameId: gameId});
   } else {
     next();
   }
 
-});
+});//END POST
 
 app.get("/:wordTest", (req, res, next)=>{
   needle = req.params.wordTest.toLowerCase();
@@ -90,8 +94,31 @@ app.use(function (req, res, next) {
   res.status(404).send("Sorry can't find that!");
 });
 
-//User Functions
+//socket routing
+io.on('connection',function(socket){
+  console.log("connected to the socket...");
+  socket.on('send stripped game info', function(){
+    var gameId = parseGameIdFromSocket(socket);
+    if (gameId == undefined) return; //TODO: ERROR MESSAGE FOR CLIENT
+    stripped = strippedGameInfo(game);
+    resetPackage = {name:"reset-information", data:"stripped"};
+  });
+})
 
+//user Functions
+/**
+  * returns undefined if it cannot find the gameId
+  * @param {socket} socket - the socket.io object
+  */
+function parseGameIdFromSocket(socket){
+  url = socket.request.headers.referer;
+  gameId = url.match(/\/[A-Za-z0-9]{6}\/?$/)[0];
+  if (!!gameId){
+    return gameId.match(/[^\/]{6}/)[0];
+  } else {
+    return undefined;
+  }
+}
 /**
   * Genearates a 6-character game id to insert into the database
   */
@@ -123,6 +150,7 @@ function addGameToDatabase(game){
 
 /**
   * Remove game from database
+  * @param {string} gameId
   */
 function removeGameFromDatabase(gameId){
   _games.splice(gameId);
@@ -162,7 +190,7 @@ function renderedPhrase(game){
   * strippedGameInfo returns necessary game info for client
   * changes playerQueue to contiain id and nickname only
   * renders the completed phrase - similar to code on client side.
-  * @param {dict} game the game info pulled from database.
+  * @param {objsect} game the game info pulled from database.
   */
 function strippedGameInfo(game){
   playerQueue = []
@@ -196,7 +224,7 @@ function randomName(){
   return name;
 }
 
-};
+};//END module.exports
 
 var Player = function(gameId, accumulatorID, nickname){
   this.hash = hash(gameId + accumulatorID + SERVER_SALT);
@@ -217,13 +245,3 @@ var Game = function(id, playerQueue, guessedLetters, phrase, hint, maxPlayers, a
   this.maxPlayers = maxPlayers;
   this.activeGuesser = activeGuesser;
 };
-
-var games = [{
-id: 'pEsudV',
-playerQueue: [player1, player2],
-guessedLetters: "",
-phrase:"What happened to all the potatoes?",
-hint:"Baman Piderman Quote",
-maxPlayers: 4,
-activeGuesser: 1
-}];

@@ -4,27 +4,9 @@
     <meta charset="utf-8">
     <link rel="stylesheet" type="text/css" href="/css/global.css">
     <link rel="stylesheet" type="text/css" href="/css/index.css">
-    <link rel="stylesheet" href="/css/jkeyboard.css">
-    <script src="/js/svg-inject.js"></script>
   <title>Hangman - Free game for up to 10 players!</title>
   </head>
   <body>
-    <!-- Overlay -->
-    <div class="g-overlay">
-      <div id="overlay-phrase-container" class="g-container">
-        <h1>Hangman - New game<h1>
-        <form class="g-large-input" method="post">
-          <input id="hint-input" type="text"
-          autocomplete="off" required="true" maxlength="27"
-          name="hint" placeholder="Hint or category*" />
-          <input id="phrase-input" type="text"
-          autocomplete="off" required="true" maxlength="27"
-          name="phrase" placeholder="Word or phrase*"/>
-          <input id="submit-button" type="submit" value="✔️"
-          onclick = "overlayOff()"/>
-        </form>
-      </div>
-    </div>
 
     <!-- Header -->
     <header class="g-header">
@@ -49,20 +31,13 @@
       </span>
 
       <!-- Right -->
-      <span id="right-container" >
-        <div id="phrase-container" class="g-container">
-          <h3 id="hint-display">&nbsp</h3>
-          <h2 id="phrase-display">&nbsp</h2>
-        </div>
-        <div id="keyboard-container" class="g-container">
-          <div id="keyboard"></div>
-        </div>
-        <div id="name-container" class="g-container">
-          <ul id="name-list">
-            <li>player 1</li>
-            <li>player 2</li>
-            <li>player 3</li>
-          </ul>
+      <span id="right-container">
+        <div id="button-wrapper" class="g-container">
+          <form class=""  method="post">
+            <label for="name">Max No. of Players:</label>
+            <input type="number" name="maxPlayers" value=4 min="2" max="10">
+            <button type="submit" onclick>New Game</button>
+          </form>
         </div>
       </span>
     </div>
@@ -71,23 +46,6 @@
     <footer class="g-footer">
       <p><a href="">About me..</a></p>
     </footer>
-    <script>SVGInject(document.getElementById('hangman-image'));</script>
-    <script src="/socket.io/socket.io.js"></script>
-    <script>
-      var socket = io('http://localhost:3000');
-    </script>
-    <script src="http://code.jquery.com/jquery-1.10.1.min.js"></script>
-    <link rel="stylesheet" type="text/css" href="css/jquery.svg.css">
-    <script type="text/javascript" src="js/jquery.svg.js"></script>
-    <script src="/js/jkeyboard.js"></script>
-    <script src="/js/hangman.js"></script>
-    <script>
-      function overlayOn(){
-        $(".g-overlay").style.display = "block";
-      }
-      function overlayOff(){
-        $(".g-overlay").style.display = "none";
-      }
-    </script>
+
   </body>
 </html>

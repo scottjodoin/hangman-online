@@ -16,9 +16,6 @@ app.set('view engine', 'ejs');
 //static files
 app.use(express.static('./lib'));
 
-io.on('connection',function(socket){
-  console.log("connected to the socket...");
-})
 
 //fire controllers
 hangmanController(app, io,  wordArray);
