@@ -18,5 +18,17 @@
     "socket-io": "^1.0.0",
     "socket.io": "^2.3.0",
     "word-list": "^3.1.0"
-  }
+  },
+  "directories": {
+    "lib": "lib"
+  },
+  "devDependencies": {},
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/scottjodoin/hangman-online.git"
+  },
+  "bugs": {
+    "url": "https://github.com/scottjodoin/hangman-online/issues"
+  },
+  "homepage": "https://github.com/scottjodoin/hangman-online#readme"
 }
