@@ -59,15 +59,22 @@ app.post('/', urlencodedParser, function(req, res){
   }
   _games[gameId] = game;//TODO function gameSet(game)
   stripped = strippedGameInfo(game);
-  res.json(stripped);
+  res.redirect('/' + gameId);
 });
 
 //gameId
-app.get("/:gameId([A-Za-z]{6})", function(req, res){
+app.get("/:gameId([A-Za-z]{6})", function(req, res, next){
   gameId = req.params.gameId;
   //If game does not exist, return to homepage
   //Else, join!
-  res.send(gameId);
+  if (includesGameById(gameId)){
+    game = getGame(gameId);
+    stripped = strippedGameInfo(game);
+    res.json(stripped);
+  } else {
+    next();
+  }
+
 });
 
 app.get("/:wordTest", (req, res, next)=>{
@@ -100,6 +107,13 @@ function setGame(game){
   _games[game.gameId] = game;
 }
 
+/**
+  * Checks to see if database includes game.
+  * @param {string} gameId the string gameId
+  */
+function includesGameById(gameId){
+  return !!_games[gameId]; //javascript double-bang
+}
 /**
   * Returns the currently rendered phrase of the game
   * e.g. CATS + C, T = C_T_
