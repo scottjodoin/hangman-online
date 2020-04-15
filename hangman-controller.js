@@ -46,20 +46,22 @@ app.post('/', urlencodedParser, function(req, res){
   gameId = generateGameId();
 
   //make player 1 cookie with gameId
-  player1 = new Player(gameId, 0, randomName())
+  player1 = new Player(gameId, 1, randomName())
+  player2 = new Player(gameId, 2, randomName())
+  player3 = new Player(gameId, 3, randomName())
   res.cookie("token", player1.hash, COOKIE_OPTIONS);
 
   //if it is, then create a game!
 
   game = {
     gameId: gameId,
-    playerQueue: [player1],
-    guessedLetters: "c",
-    phrase: "",
-    hint: "",
+    playerQueue: [player1, player2, player3],
+    guessedLetters: "felct",
+    phrase: "c_t___",
+    hint: "Feline",
     maxPlayers: maxPlayers,
     gamePhase: GAME_PHASE.SELECTION,
-    activeGuesser: 0 //active host assumed to be playerQueue[0]
+    activeGuesser: 1 //active host assumed to be playerQueue[0]
   }
 
   addGameToDatabase(game);
@@ -95,13 +97,13 @@ app.use(function (req, res, next) {
 });
 
 //socket routing
-io.on('connection',function(socket){
-  console.log("connected to the socket...");
-  socket.on('send stripped game info', function(){
-    var gameId = parseGameIdFromSocket(socket);
-    if (gameId == undefined) return; //TODO: ERROR MESSAGE FOR CLIENT
+io.on('connection', function(socket){
+  var gameId = parseGameIdFromSocket(socket);
+  if (gameId == undefined) return;
+  socket.join(gameId);
+  socket.on('send stripped game info', function(id, msg){
     stripped = strippedGameInfo(game);
-    resetPackage = {name:"reset-information", data:"stripped"};
+    socket.emit('reset information', stripped);
   });
 })
 

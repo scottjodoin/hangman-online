@@ -83,6 +83,9 @@ footer{
   }
     #name-list{
     }
+    .host{
+      font-weight: bolder;
+    }
   #hangman-wrapper{
     text-align: center;
     vertical-align: middle;
@@ -106,13 +109,19 @@ footer{
   #phrase-container{
     position: relative;
   }
-    #hint-display, #hint-input{
+    #hint-display,#guessed-letters-display, #hint-input{
+      padding: 0.5em 0em ;
       font-size: 1rem;
       width: 50%;
       text-transform: uppercase;
     }
+    #guessed-letters-display {
+      font-style: italic;
+      letter-spacing: 0.2em;
+    }
     #phrase-display, #phrase-input{
       font-size: 2rem;
+      letter-spacing: 0.2em;
       width: 100%;
       text-transform: uppercase;
     }

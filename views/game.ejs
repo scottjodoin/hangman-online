@@ -14,8 +14,8 @@
       <div id="overlay-phrase-container" class="g-container">
         <h1>Choose a Word</h1>
         <label for="game-id">Copy and share with your friends:</label>
-        <input type="text" id="game-id" name="game-id"
-        autocomplete="off" value="website.com/<%= gameId %>">
+        <input type="text" class="game-id" name="game-id"
+        autocomplete="off">
         <form action="" class="g-large-input">
           <input id="hint-input" type="text"
           autocomplete="off" required="true" maxlength="27"
@@ -56,15 +56,14 @@
         <div id="phrase-container" class="g-container">
           <h3 id="hint-display">&nbsp</h3>
           <h2 id="phrase-display">&nbsp</h2>
+          <h2 id="guessed-letters-display">&nbsp</h2>
         </div>
         <div id="keyboard-container" class="g-container">
           <div id="keyboard"></div>
         </div>
         <div id="name-container" class="g-container">
           <ul id="name-list">
-            <li>player 1</li>
-            <li>player 2</li>
-            <li>player 3</li>
+            <!-- Name list goes here! class="name"-->
           </ul>
         </div>
       </span>
