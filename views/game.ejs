@@ -10,7 +10,11 @@
   </head>
   <body>
     <!-- Overlay -->
-    <div class="g-overlay">
+    <%
+      var displayAttribute = "display=\"" +
+      (isHost && game.gamePhase == 0) ? "block" : "none" + "\"";
+    %>
+    <div class="g-overlay" <%= displayAttribute %>>
       <div id="overlay-phrase-container" class="g-container">
         <h1>Choose a Word</h1>
         <label for="game-id">Copy and share with your friends:</label>
@@ -39,7 +43,7 @@
         <p><a href="">Leave game</a></p>
       </span>
       <span class="g-error-wrapper">
-        <p>Here is a message</p>
+        <p id="error-message">Here is a message</p>
       </span>
     </header>
     <!-- Content -->

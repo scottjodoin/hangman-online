@@ -1,9 +1,9 @@
 //requirements
 let bodyParser = require('body-parser');
 let urlencodedParser = bodyParser.urlencoded({extended: false});
-let utilFunctions = require('./util-functions'); //result = utilFunctions.binarySearch(wordArray, needle);
 let hash = require('object-hash');
-let cookieParser = require('cookie-parser');
+let utilFunctions = require('./util-functions'); //result = utilFunctions.binarySearch(wordArray, needle);
+let cookie = require('cookie');
 const SERVER_SALT = Math.random().toString().substring(2); //used for encrypting cookies
 const COOKIE_OPTIONS = {
   maxAge: 15 * 60 * 1000, //15 minute expiry
@@ -17,7 +17,6 @@ const GAME_PHASE = {
 let _games = {}
 //main
 module.exports = function(app, io, wordArray) {
-
 
 //html routing
 app.get('/', function(req, res){
@@ -45,18 +44,12 @@ app.post('/', urlencodedParser, function(req, res){
   //Create random gameId
   gameId = generateGameId();
 
-  //make player 1 cookie with gameId
-  player1 = new Player(gameId, 1, randomName())
-  player2 = new Player(gameId, 2, randomName())
-  player3 = new Player(gameId, 3, randomName())
-  res.cookie("token", player1.hash, COOKIE_OPTIONS);
-
   //if it is, then create a game!
 
   game = {
     gameId: gameId,
-    playerQueue: [player1, player2, player3],
-    guessedLetters: "felct",
+    playerQueue: [],
+    guessedLetters: "",
     phrase: "c_t___",
     hint: "Feline",
     maxPlayers: maxPlayers,
@@ -64,31 +57,45 @@ app.post('/', urlencodedParser, function(req, res){
     activeGuesser: 1 //active host assumed to be playerQueue[0]
   }
 
-  addGameToDatabase(game);
+  setGameInDatabase(game);
 
   res.redirect('/' + gameId);
 });
 
 //gameId
 app.get("/:gameId([A-Za-z0-9]{6})", function(req, res, next){
+  //parse gameId
   gameId = req.params.gameId.toUpperCase();
-  //If game does not exist, return to homepage
-  //Else, join!
   if (databaseHasGameById(gameId)){
-    game = fetchGameFromDatabase(gameId);
-    stripped = strippedGameInfo(game);
-    res.render('game',{gameId: gameId});
+    var game = fetchGameFromDatabase(gameId);
+    var player;
+    var token = req.cookies.token;
+    if (token === undefined) {
+      // no token: make a new player and add it!
+      res.cookie('token', 'test', {maxAge: 50000, httpOnly: true});
+      if (game.playerQueue.length == game.maxPlayers){
+        res.send("Room full.");//No room left.
+      };
+      player = addNewPlayerAndReturn(game);
+      res.cookie('token', player.hash, {maxAge: 50 * 1000, httpOnly: true});
+      setGameInDatabase(game);//TODO: asyncronous
+    } else {
+      //yes token: fetch player
+      var hash = token;
+      var player = getPlayerUsingHash(hash, game);
+      if (!player){//Bad cookie.
+        player = addNewPlayerAndReturn(game);//TODO: Is there a way to not have copied code from above?
+        res.cookie('token', player.hash, {maxAge: 50 * 1000, httpOnly: true});
+        setGameInDatabase(game);//TODO: asyncronous
+      }
+    }
+    //send only the necessary information
+    var stripped = strippedPlayerAndGameInfo(player, gameId);
+    res.render('game', stripped);
   } else {
     next();
   }
-
 });//END POST
-
-app.get("/:wordTest", (req, res, next)=>{
-  needle = req.params.wordTest.toLowerCase();
-  result = utilFunctions.binarySearch(wordArray, needle);
-  (result >= 0) ? res.send(needle.toUpperCase() + " is an English word!") : next();
-});
 
 //404
 app.use(function (req, res, next) {
@@ -101,13 +108,56 @@ io.on('connection', function(socket){
   var gameId = parseGameIdFromSocket(socket);
   if (gameId == undefined) return;
   socket.join(gameId);
+  //Determine the hash
+  var hash = getPlayerHashFromSocket(socket);
   socket.on('send stripped game info', function(id, msg){
-    stripped = strippedGameInfo(game);
+    var game = fetchGameFromDatabase(gameId);
+    var player = getPlayerUsingHash(hash, game);
+    var stripped = strippedPlayerAndGameInfo(player, gameId);
     socket.emit('reset information', stripped);
   });
 })
 
+//Return the id of the player with with matching hash.
+function getPlayerUsingHash(hash, game){
+  var result = undefined;
+  game.playerQueue.forEach((player)=>{
+    if (hash === player.hash) result = player;
+  });
+  return result;
+}
+
+//Returns undefined if no token found.
+  function getPlayerHashFromSocket(socket){
+    return cookie.parse(socket.handshake.headers.cookie).token;
+  }
+
 //user Functions
+/**
+  * Returns undefined if the room is full.
+  * Otherwise returns unique player appended to room.
+  * @param{string} gameId
+  */
+function addNewPlayerAndReturn(game)
+{
+  var gameId = game.gameId;
+  var playerQueue = game.playerQueue;
+  if (playerQueue.length == game.maxPlayers){
+    return undefined;
+  };
+  //Find new playerId by incrementing
+  var max = -1;
+  playerQueue.forEach((player)=>{
+    if (player.id > max) max = player.id;
+  })
+  var playerId = max + 1;
+  var nickname = randomName();
+  var player = new Player(gameId, playerId, nickname);
+  playerQueue.push(player);
+  io.in(gameId).emit('new-player', playerId, nickname);
+  return player;
+}
+
 /**
   * returns undefined if it cannot find the gameId
   * @param {socket} socket - the socket.io object
@@ -146,7 +196,7 @@ function fetchGameFromDatabase(gameId){
   * Initialize full game data into database
   * @param {object} game game instance containing game.gameId
   */
-function addGameToDatabase(game){
+function setGameInDatabase(game){
   _games[game.gameId] = game;
 }
 
@@ -186,6 +236,15 @@ function renderedPhrase(game){
     }
   }
   return result;
+}
+
+function strippedPlayerAndGameInfo(player, gameId){
+  var game = fetchGameFromDatabase(gameId);
+  var playerIndex = game.playerQueue.indexOf(player);
+  var isHost = playerIndex == 0;
+  var isGuesser = playerIndex == game.activeGuesser;
+  var strippedGame = strippedGameInfo(game);
+  return {isHost: isHost, isGuesser: isGuesser, game: strippedGame};
 }
 
 /**
@@ -228,9 +287,9 @@ function randomName(){
 
 };//END module.exports
 
-var Player = function(gameId, accumulatorID, nickname){
-  this.hash = hash(gameId + accumulatorID + SERVER_SALT);
-  this.id = accumulatorID;
+var Player = function(gameId, playerId, nickname){
+  this.hash = hash(gameId + playerId + SERVER_SALT);
+  this.id = playerId;
   this.nickname = nickname;
 };
 
