@@ -27,22 +27,8 @@ app.post('/', urlencodedParser, function(req, res){
   //Get maxPlayers from form
   var maxPlayers = req.body.maxPlayers;
 
-  /** TODO: This needs to go to a socket?
-  phrase = req.body.phrase;
-
-  //TODO: check if phrase is valid. If not, complain. Remove all uneeded characters.
-  regexp = /[A-za-z']+/g
-  var result;
-  while ((result = regexp.exec(phrase))!=null){
-    search = utilFunctions.binarySearch(wordArray, result[0].toLowerCase());
-    if (search == -1) return res.redirect('/'); //TODO: change index.html to index.ejs and rerender
-  }
-
-  hint = req.body.hint;
-  maxPlayers = req.body.hint; */
-
   //Create random gameId
-  gameId = generateGameId();
+  var gameId = generateGameId();
 
   //if it is, then create a game!
 
@@ -50,11 +36,11 @@ app.post('/', urlencodedParser, function(req, res){
     gameId: gameId,
     playerQueue: [],
     guessedLetters: "",
-    phrase: "c_t___",
-    hint: "Feline",
+    phrase: "|",
+    hint: "|",
     maxPlayers: maxPlayers,
     gamePhase: GAME_PHASE.SELECTION,
-    activeGuesser: 1 //active host assumed to be playerQueue[0]
+    activeGuesser: -1 //set to 1 when second player joins.
   }
 
   setGameInDatabase(game);
@@ -105,22 +91,81 @@ app.use(function (req, res, next) {
 
 //socket routing
 io.on('connection', function(socket){
-  var gameId = parseGameIdFromSocket(socket);
-  if (gameId == undefined) return;
-  socket.join(gameId);
-  //Determine the hash
-  var hash = getPlayerHashFromSocket(socket);
-  socket.on('send stripped game info', function(id, msg){
-    var game = fetchGameFromDatabase(gameId);
+  var _gameId = parseGameIdFromSocket(socket);
+  if (_gameId == undefined || !databaseHasGameById(_gameId)) return;
+  socket.join(_gameId, function(){
+    var hash = getPlayerHashFromSocket(socket);
+    var game = fetchGameFromDatabase(_gameId);
     var player = getPlayerUsingHash(hash, game);
-    var stripped = strippedPlayerAndGameInfo(player, gameId);
+    var playerId = player.id;
+    var nickname = player.nickname
+    socket.to(_gameId).emit('new player', {playerId: playerId, nickname: nickname});
+    console.log(nickname + 'joined room ' + _gameId);
+  });
+  //Determine the hash
+
+  socket.on('send stripped game info', function(msg){
+    var data =getPlayerAndGameFromSocket(socket);
+    var game = data.game;
+    var player = data.player;
+    var stripped = strippedPlayerAndGameInfo(player, _gameId);
     socket.emit('reset information', stripped);
   });
-})
+
+// Accept only from host, reject or start round
+  socket.on('hint and phrase try', function (msg){
+    var data =getPlayerAndGameFromSocket(socket);
+    var game = data.game;
+    var player = data.player;
+    if (player !== game.playerQueue[0]){ // If not host, return
+      return;
+    }
+    var hint = msg.hint;
+    var phrase = msg.phrase;
+
+    //Check if phrase is valid. If not, complain. Remove all uneeded characters.
+    regexp = /[A-za-z']+/g
+    var result;
+    while ((result = regexp.exec(phrase))!=null){
+      search = utilFunctions.binarySearch(wordArray, result[0].toLowerCase());
+      if (search == -1){//Phrase no good..
+        socket.emit('phrase rejected');
+        return;
+      }
+    }
+    game.hint = hint;
+    game.phrase = phrase;
+    game.gamePhase = GAME_PHASE.GUESSING;
+    game.activeGuesser = 1;//The first person aside from the host...
+    setGameInDatabase(game);
+    io.in(_gameId).emit('round start', {hint: hint, phrase: phrase, game: game.activeGuesser});
+  });
+
+  socket.on('disconnect', function(){
+    var data = getPlayerAndGameFromSocket(socket);
+    //Remove player and update the activeGuesser
+    var updatedGame = removePlayerFromGame(data.player, data.game);
+    socket.to(_gameId).emit('remove player',
+    {id: data.player.id, nickname: data.player.nickname, activeGuesser: updatedGame.activeGuesser});
+    socket.leave(_gameId);
+    console.log(`${data.player.nickname} left room  ${_gameId}.`);
+    console.log('socket disconnected');
+  })
+});
+
+//Gets the player and game using socket url and cookies
+function getPlayerAndGameFromSocket(socket){
+  var gameId = parseGameIdFromSocket(socket);
+  var hash = getPlayerHashFromSocket(socket);
+  var game = fetchGameFromDatabase(gameId);
+  var player = getPlayerUsingHash(hash, game);
+  return {player: player, game: game};
+}
 
 //Return the id of the player with with matching hash.
 function getPlayerUsingHash(hash, game){
   var result = undefined;
+  if (!game) return result;
   game.playerQueue.forEach((player)=>{
     if (hash === player.hash) result = player;
   });
@@ -133,6 +178,28 @@ function getPlayerUsingHash(hash, game){
   }
 
 //user Functions
+
+/**
+  * Updates game in database
+  *
+  */
+function removePlayerFromGame(player, game){
+  var playerQueue = game.playerQueue;
+  var index = playerQueue.indexOf(player)
+  if (index == -1) throw this.toString() + ": player not found";
+  playerQueue.splice(index);
+  if (game.activeGuesser >= playerQueue.length){
+    if (playerQueue.length < 2) {
+      game.activeGuesser = -1;
+    } else {
+      game.activeGuesser = 1;
+    }
+  }
+  game.playerQueue = playerQueue;
+  setGameInDatabase(game)
+  return game;
+}
+
 /**
   * Returns undefined if the room is full.
   * Otherwise returns unique player appended to room.
@@ -154,7 +221,6 @@ function addNewPlayerAndReturn(game)
   var nickname = randomName();
   var player = new Player(gameId, playerId, nickname);
   playerQueue.push(player);
-  io.in(gameId).emit('new-player', playerId, nickname);
   return player;
 }
 
@@ -164,7 +230,7 @@ function addNewPlayerAndReturn(game)
   */
 function parseGameIdFromSocket(socket){
   url = socket.request.headers.referer;
-  gameId = url.match(/\/[A-Za-z0-9]{6}\/?$/)[0];
+  var gameId = url.match(/\/[A-Za-z0-9]{6}\/?$/)[0];
   if (!!gameId){
     return gameId.match(/[^\/]{6}/)[0];
   } else {
@@ -241,10 +307,8 @@ function renderedPhrase(game){
 function strippedPlayerAndGameInfo(player, gameId){
   var game = fetchGameFromDatabase(gameId);
   var playerIndex = game.playerQueue.indexOf(player);
-  var isHost = playerIndex == 0;
-  var isGuesser = playerIndex == game.activeGuesser;
   var strippedGame = strippedGameInfo(game);
-  return {isHost: isHost, isGuesser: isGuesser, game: strippedGame};
+  return {playerIndex: playerIndex, game: strippedGame};
 }
 
 /**

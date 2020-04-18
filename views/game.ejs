@@ -11,24 +11,23 @@
   <body>
     <!-- Overlay -->
     <%
-      var displayAttribute = "display=\"" +
-      (isHost && game.gamePhase == 0) ? "block" : "none" + "\"";
+      var displayAttribute = "style=\"display:"
+      displayAttribute += (playerIndex == 0 && game.gamePhase == 0) ? "block\"" : "none\"";
     %>
-    <div class="g-overlay" <%= displayAttribute %>>
+    <div  class="g-overlay" <%= displayAttribute %>>
       <div id="overlay-phrase-container" class="g-container">
         <h1>Choose a Word</h1>
         <label for="game-id">Copy and share with your friends:</label>
         <input type="text" class="game-id" name="game-id"
         autocomplete="off">
-        <form action="" class="g-large-input">
+        <form class="g-large-input">
           <input id="hint-input" type="text"
           autocomplete="off" required="true" maxlength="27"
-          name="hint" placeholder="Hint or category*" />
+          name="hint" placeholder="Hint or category*" value="dog"/>
           <input id="phrase-input" type="text"
           autocomplete="off" required="true" maxlength="27"
-          name="phrase" placeholder="Word or phrase*"/>
-          <input id="submit-button" type="submit" value="✔️"
-          onclick = "overlayOff()"/>
+          name="phrase" placeholder="Word or phrase*" value="dog"/>
+          <input id="submit-button" type="submit" value="✔️" />
         </form>
       </div>
     </div>
@@ -40,6 +39,7 @@
         <p class="g-player-count">Players online:</p>
       </span>
       <span class="g-leave-wrapper">
+        <p id="player-name">&nbsp</p>
         <p><a href="">Leave game</a></p>
       </span>
       <span class="g-error-wrapper">
@@ -86,10 +86,10 @@
     <script src="/js/hangman.js"></script>
     <script>
       function overlayOn(){
-        $(".g-overlay").style.display = "block";
+        $(".g-overlay").css("display","block");
       }
       function overlayOff(){
-        $(".g-overlay").style.display = "none";
+        $(".g-overlay").css("display","none");
       }
     </script>
   </body>
