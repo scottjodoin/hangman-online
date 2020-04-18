@@ -33,7 +33,7 @@ app.post('/', urlencodedParser, function(req, res){
   //if it is, then create a game!
 
   game = {
-    gameId: gameId,
+    id: gameId,
     playerQueue: [],
     guessedLetters: "",
     phrase: "|",
@@ -49,9 +49,9 @@ app.post('/', urlencodedParser, function(req, res){
 });
 
 //gameId
-app.get("/:gameId([A-Za-z0-9]{6})", function(req, res, next){
+app.get("/:id([A-Za-z0-9]{6})", function(req, res, next){
   //parse gameId
-  gameId = req.params.gameId.toUpperCase();
+  gameId = req.params.id.toUpperCase();
   if (databaseHasGameById(gameId)){
     var game = fetchGameFromDatabase(gameId);
     var player;
@@ -100,7 +100,7 @@ io.on('connection', function(socket){
     var playerId = player.id;
     var nickname = player.nickname
     socket.to(_gameId).emit('new player', {playerId: playerId, nickname: nickname});
-    console.log(nickname + 'joined room ' + _gameId);
+    console.log(nickname + ' joined room ' + _gameId);
   });
   //Determine the hash
 
@@ -114,7 +114,7 @@ io.on('connection', function(socket){
 
 // Accept only from host, reject or start round
   socket.on('hint and phrase try', function (msg){
-    var data =getPlayerAndGameFromSocket(socket);
+    var data = getPlayerAndGameFromSocket(socket);
     var game = data.game;
     var player = data.player;
     if (player !== game.playerQueue[0]){ // If not host, return
@@ -138,20 +138,55 @@ io.on('connection', function(socket){
     game.gamePhase = GAME_PHASE.GUESSING;
     game.activeGuesser = 1;//The first person aside from the host...
     setGameInDatabase(game);
-    io.in(_gameId).emit('round start', {hint: hint, phrase: phrase, game: game.activeGuesser});
+    var renderedPhrase = getRenderedPhraseFromGame(game);
+    io.in(_gameId).emit('round start', {hint: hint, phrase: renderedPhrase, activeGuesser: game.activeGuesser});
   });
 
+  socket.on('letter try', function (letter){
+    var data;
+    try{
+      data = getPlayerAndGameFromSocket(socket);
+      if (data.player !== data.game.playerQueue[data.game.activeGuesser]) return;
+    } catch(err){return};
+    if (letter.match(/[^A-za-z]{1}$/)) return;
+    console.log(data.player.nickname + " tried " + letter);
+    var player = data.player;
+    var game = data.game;
+    var phrase = data.game.phrase.toLowerCase();
+    letter = letter.toLowerCase();
+    if (game.guessedLetters.includes(letter)) return;//Bad input. Only unique letters.
+    game.guessedLetters += letter;
+    //advance player
+    var activeGuesser = getNewActiveGuesserIndex(game);
+    setGameInDatabase(activeGuesser);
+    //check letters and emit.
+    if (phrase.includes(letter)){
+      io.in(game.id).emit('correct letter',
+      {phrase: getRenderedPhraseFromGame(game), activeGuesser:activeGuesser});
+    } else {
+      io.in(game.id).emit('incorrect letter',
+      {letter:letter, activeGuesser:activeGuesser});
+    }
+  });
   socket.on('disconnect', function(){
     var data = getPlayerAndGameFromSocket(socket);
     //Remove player and update the activeGuesser
-    var updatedGame = removePlayerFromGame(data.player, data.game);
+    /*var updatedGame = removePlayerFromGame(data.player, data.game);TODO figure out what to do if someone leaves?
     socket.to(_gameId).emit('remove player',
     {id: data.player.id, nickname: data.player.nickname, activeGuesser: updatedGame.activeGuesser});
-    socket.leave(_gameId);
+    socket.leave(_gameId);*/
     console.log(`${data.player.nickname} left room  ${_gameId}.`);
     console.log('socket disconnected');
   })
 });
+
+//Sets the next player in the game, returns game
+function getNewActiveGuesserIndex(game)
+{
+  game.activeGuesser = (game.activeGuesser + 1) % game.playerQueue.length;
+  if (game.activeGuesser === 0) game.activeGuesser = 1;
+  return game.activeGuesser;
+}
 
 //Gets the player and game using socket url and cookies
 function getPlayerAndGameFromSocket(socket){
@@ -186,7 +221,7 @@ function getPlayerUsingHash(hash, game){
 function removePlayerFromGame(player, game){
   var playerQueue = game.playerQueue;
   var index = playerQueue.indexOf(player)
-  if (index == -1) throw this.toString() + ": player not found";
+  if (index == -1) `node --trace-uncaught ...` + ": player not found";
   playerQueue.splice(index);
   if (game.activeGuesser >= playerQueue.length){
     if (playerQueue.length < 2) {
@@ -207,7 +242,7 @@ function removePlayerFromGame(player, game){
   */
 function addNewPlayerAndReturn(game)
 {
-  var gameId = game.gameId;
+  var gameId = game.id;
   var playerQueue = game.playerQueue;
   if (playerQueue.length == game.maxPlayers){
     return undefined;
@@ -260,10 +295,10 @@ function fetchGameFromDatabase(gameId){
 
 /**
   * Initialize full game data into database
-  * @param {object} game game instance containing game.gameId
+  * @param {object} game game instance containing game.id
   */
 function setGameInDatabase(game){
-  _games[game.gameId] = game;
+  _games[game.id] = game;
 }
 
 /**
@@ -286,7 +321,7 @@ function databaseHasGameById(gameId){
   * e.g. CATS + C, T = C_T_
   * @param {object} game game pulled from database
   */
-function renderedPhrase(game){
+function getRenderedPhraseFromGame(game){
   result = ""
   phrase = game.phrase.toLowerCase();
   for (var i = 0; i < phrase.length; i++){
@@ -324,7 +359,7 @@ function strippedGameInfo(game){
       id:item.id,
       nickname: item.nickname});
   });
-  phrase = renderedPhrase(game);
+  phrase = getRenderedPhraseFromGame(game);
   return {
     playerQueue: playerQueue,
     phrase: phrase,
