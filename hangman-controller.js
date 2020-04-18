@@ -58,7 +58,6 @@ app.get("/:id([A-Za-z0-9]{6})", function(req, res, next){
     var token = req.cookies.token;
     if (token === undefined) {
       // no token: make a new player and add it!
-      res.cookie('token', 'test', {maxAge: 50000, httpOnly: true});
       if (game.playerQueue.length == game.maxPlayers){
         res.send("Room full.");//No room left.
       };
@@ -133,12 +132,14 @@ io.on('connection', function(socket){
         return;
       }
     }
+    game.guessedLetters = "";
     game.hint = hint;
     game.phrase = phrase;
     game.gamePhase = GAME_PHASE.GUESSING;
     game.activeGuesser = 1;//The first person aside from the host...
     setGameInDatabase(game);
     var renderedPhrase = getRenderedPhraseFromGame(game);
+    console.log(renderedPhrase);
     io.in(_gameId).emit('round start', {hint: hint, phrase: renderedPhrase, activeGuesser: game.activeGuesser});
   });
 
@@ -148,24 +149,54 @@ io.on('connection', function(socket){
       data = getPlayerAndGameFromSocket(socket);
       if (data.player !== data.game.playerQueue[data.game.activeGuesser]) return;
     } catch(err){return};
-    if (letter.match(/[^A-za-z]{1}$/)) return;
+    if (letter.match(/[^A-za-z]{1}$/)) return; //has to be a letter
     console.log(data.player.nickname + " tried " + letter);
     var player = data.player;
     var game = data.game;
     var phrase = data.game.phrase.toLowerCase();
     letter = letter.toLowerCase();
-    if (game.guessedLetters.includes(letter)) return;//Bad input. Only unique letters.
+    if (game.guessedLetters.includes(letter)) return;//No penalty for already guessed letters.
     game.guessedLetters += letter;
+
     //advance player
     var activeGuesser = getNewActiveGuesserIndex(game);
     setGameInDatabase(activeGuesser);
-    //check letters and emit.
+
+    // check letters and emit.
     if (phrase.includes(letter)){
-      io.in(game.id).emit('correct letter',
-      {phrase: getRenderedPhraseFromGame(game), activeGuesser:activeGuesser});
+      // good letter
+      var renderedPhrase = getRenderedPhraseFromGame(game);
+      if (renderedPhrase === game.phrase){
+        // game won!
+        io.in(game.id).emit('game won', {
+          phrase: game.phrase
+        });
+        setTimeout(()=>{
+          game.gamePhase = GAME_PHASE.SELECTION;
+          game = rotateQueueAndReturnGame(game);
+          setGameInDatabase(game);
+          io.in(game.id).emit('rotate and new round');
+        },1000);
+      } else {
+        io.in(game.id).emit('correct letter',
+        {phrase: getRenderedPhraseFromGame(game), activeGuesser:activeGuesser});
+      }
+
     } else {
-      io.in(game.id).emit('incorrect letter',
-      {letter:letter, activeGuesser:activeGuesser});
+      // bad letter
+      if (game.guessedLetters.length >= 7){
+        // end game
+        io.in(game.id).emit('game lost', game.phrase);
+        setTimeout(()=>{
+          game.gamePhase = GAME_PHASE.SELECTION;
+          setGameInDatabase(rotateQueueAndReturnGame(game));
+          io.in(game.id).emit('rotate and new round');
+        }, 3000);
+      } else {
+        io.in(game.id).emit('incorrect letter',
+        {letter:letter, activeGuesser:activeGuesser});
+      }
+
     }
   });
   socket.on('disconnect', function(){
@@ -179,6 +210,14 @@ io.on('connection', function(socket){
     console.log('socket disconnected');
   })
 });
+
+function rotateQueueAndReturnGame(game){
+  var playerQueue = game.playerQueue;
+  var temp = playerQueue.shift();
+  playerQueue.push(temp);
+  game.playerQueue = playerQueue;
+  return game;
+}
 
 //Sets the next player in the game, returns game
 function getNewActiveGuesserIndex(game)
