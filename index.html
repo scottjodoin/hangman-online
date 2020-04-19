@@ -18,7 +18,7 @@
         <p><a href="">Leave game</a></p>
       </span>
       <span class="g-error-wrapper">
-        <p>Here is a message</p>
+        <p>&nbsp</p>
       </span>
     </header>
     <!-- Content -->
@@ -35,7 +35,7 @@
         <div id="button-wrapper" class="g-container">
           <form class=""  method="post">
             <label for="name">Max No. of Players:</label>
-            <input type="number" name="maxPlayers" value=4 min="2" max="10">
+            <input id="max-player-input" type="number" name="maxPlayers" value=4 min="2" max="10">
             <button type="submit" onclick>New Game</button>
           </form>
         </div>
@@ -46,6 +46,11 @@
     <footer class="g-footer">
       <p><a href="">About me..</a></p>
     </footer>
+    <script>
+      (()=>{
+        document.getElementById("max-player-input").focus();
+      })();
 
+    </script>
   </body>
 </html>

@@ -36,8 +36,8 @@ app.post('/', urlencodedParser, function(req, res){
     id: gameId,
     playerQueue: [],
     guessedLetters: "",
-    phrase: "|",
-    hint: "|",
+    phrase: "",
+    hint: "",
     maxPlayers: maxPlayers,
     gamePhase: GAME_PHASE.SELECTION,
     activeGuesser: -1 //set to 1 when second player joins.
@@ -58,8 +58,9 @@ app.get("/:id([A-Za-z0-9]{6})", function(req, res, next){
     var token = req.cookies.token;
     if (token === undefined) {
       // no token: make a new player and add it!
-      if (game.playerQueue.length == game.maxPlayers){
-        res.send("Room full.");//No room left.
+      if (game.playerQueue.length >= game.maxPlayers){
+        res.send("Room full.");//No room left
+        return;
       };
       player = addNewPlayerAndReturn(game);
       res.cookie('token', player.hash, {maxAge: 50 * 1000, httpOnly: true});
@@ -70,7 +71,7 @@ app.get("/:id([A-Za-z0-9]{6})", function(req, res, next){
       var player = getPlayerUsingHash(hash, game);
       if (!player){//Bad cookie.
         player = addNewPlayerAndReturn(game);//TODO: Is there a way to not have copied code from above?
-        res.cookie('token', player.hash, {maxAge: 50 * 1000, httpOnly: true});
+        res.cookie('token', player.hash, {maxAge: 15 * 60 * 1000, httpOnly: true});
         setGameInDatabase(game);//TODO: asyncronous
       }
     }
@@ -79,6 +80,7 @@ app.get("/:id([A-Za-z0-9]{6})", function(req, res, next){
     res.render('game', stripped);
   } else {
     next();
+
   }
 });//END POST
 
@@ -96,6 +98,7 @@ io.on('connection', function(socket){
     var hash = getPlayerHashFromSocket(socket);
     var game = fetchGameFromDatabase(_gameId);
     var player = getPlayerUsingHash(hash, game);
+    if (!player) socket.leave(_gameId,()=>{return;});
     var playerId = player.id;
     var nickname = player.nickname
     socket.to(_gameId).emit('new player', {playerId: playerId, nickname: nickname});
@@ -123,7 +126,11 @@ io.on('connection', function(socket){
     var phrase = msg.phrase;
 
     //Check if phrase is valid. If not, complain. Remove all uneeded characters.
-    regexp = /[A-za-z']+/g
+    if (!(!!phrase && /[A-Za-z]/g.test(phrase))){
+      socket.emit('phrase rejected');
+      return;
+    }
+    regexp = /[A-Za-z']+/g
     var result;
     while ((result = regexp.exec(phrase))!=null){
       search = utilFunctions.binarySearch(wordArray, result[0].toLowerCase());
@@ -139,7 +146,6 @@ io.on('connection', function(socket){
     game.activeGuesser = 1;//The first person aside from the host...
     setGameInDatabase(game);
     var renderedPhrase = getRenderedPhraseFromGame(game);
-    console.log(renderedPhrase);
     io.in(_gameId).emit('round start', {hint: hint, phrase: renderedPhrase, activeGuesser: game.activeGuesser});
   });
 
@@ -150,17 +156,16 @@ io.on('connection', function(socket){
       if (data.player !== data.game.playerQueue[data.game.activeGuesser]) return;
     } catch(err){return};
     if (letter.match(/[^A-za-z]{1}$/)) return; //has to be a letter
-    console.log(data.player.nickname + " tried " + letter);
     var player = data.player;
     var game = data.game;
     var phrase = data.game.phrase.toLowerCase();
     letter = letter.toLowerCase();
-    if (game.guessedLetters.includes(letter)) return;//No penalty for already guessed letters.
+    if (game.guessedLetters.includes(letter)) return;//No penalty if guessed
     game.guessedLetters += letter;
+    console.log(`${data.player.nickname} tried ${letter}: Guessed letters: ${data.game.guessedLetters}`);
 
     //advance player
     var activeGuesser = getNewActiveGuesserIndex(game);
-    setGameInDatabase(activeGuesser);
 
     // check letters and emit.
     if (phrase.includes(letter)){
@@ -173,6 +178,7 @@ io.on('connection', function(socket){
         });
         setTimeout(()=>{
           game.gamePhase = GAME_PHASE.SELECTION;
+          game.guessedLetters = "";
           game = rotateQueueAndReturnGame(game);
           setGameInDatabase(game);
           io.in(game.id).emit('rotate and new round');
@@ -184,19 +190,21 @@ io.on('connection', function(socket){
 
     } else {
       // bad letter
-      if (game.guessedLetters.length >= 7){
+      var incorrectLetters = getIncorrectGuesses(game);
+      if (incorrectLetters >= 7){
         // end game
-        io.in(game.id).emit('game lost', game.phrase);
+        io.in(game.id).emit('game lost', {letter:letter, phrase: game.phrase});
         setTimeout(()=>{
           game.gamePhase = GAME_PHASE.SELECTION;
-          setGameInDatabase(rotateQueueAndReturnGame(game));
+          game.guessedLetters = "";
+          game = rotateQueueAndReturnGame(game)
+          setGameInDatabase(game);
           io.in(game.id).emit('rotate and new round');
-        }, 3000);
+        }, 2000);
       } else {
         io.in(game.id).emit('incorrect letter',
         {letter:letter, activeGuesser:activeGuesser});
       }
-
     }
   });
   socket.on('disconnect', function(){
@@ -210,6 +218,19 @@ io.on('connection', function(socket){
     console.log('socket disconnected');
   })
 });
+
+//user Functions
+
+function getIncorrectGuesses(game){
+  var phrase = game.phrase;
+  var guessedLetters = game.guessedLetters;
+  var incorrectGuesses = 0;
+  for (var i = 0, length = guessedLetters.length; i < length; i++){
+    char = guessedLetters.charAt(i);
+    if (!phrase.includes(char)) incorrectGuesses += 1;
+  }
+  return incorrectGuesses;
+}
 
 function rotateQueueAndReturnGame(game){
   var playerQueue = game.playerQueue;
@@ -250,8 +271,6 @@ function getPlayerUsingHash(hash, game){
   function getPlayerHashFromSocket(socket){
     return cookie.parse(socket.handshake.headers.cookie).token;
   }
-
-//user Functions
 
 /**
   * Updates game in database
