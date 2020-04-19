@@ -63,15 +63,14 @@ app.get("/:id([A-Za-z0-9]{6})", function(req, res, next){
         return;
       };
       player = addNewPlayerAndReturn(game);
-      res.cookie('token', player.hash, {maxAge: 50 * 1000, httpOnly: true});
+      res.cookie('token', player.token, {maxAge: 50 * 1000, httpOnly: true});
       setGameInDatabase(game);//TODO: asyncronous
     } else {
       //yes token: fetch player
-      var hash = token;
-      var player = getPlayerUsingHash(hash, game);
+      var player = getPlayerUsingToken(token, game);
       if (!player){//Bad cookie.
         player = addNewPlayerAndReturn(game);//TODO: Is there a way to not have copied code from above?
-        res.cookie('token', player.hash, {maxAge: 15 * 60 * 1000, httpOnly: true});
+        res.cookie('token', player.token, {maxAge: 15 * 60 * 1000, httpOnly: true});
         setGameInDatabase(game);//TODO: asyncronous
       }
     }
@@ -95,16 +94,20 @@ io.on('connection', function(socket){
   var _gameId = parseGameIdFromSocket(socket);
   if (_gameId == undefined || !databaseHasGameById(_gameId)) return;
   socket.join(_gameId, function(){
-    var hash = getPlayerHashFromSocket(socket);
+    var token = getPlayerTokenFromSocket(socket);
     var game = fetchGameFromDatabase(_gameId);
-    var player = getPlayerUsingHash(hash, game);
-    if (!player) socket.leave(_gameId,()=>{return;});
+    var player = getPlayerUsingToken(token, game);
+    if (!player) {
+      socket.leave(_gameId,()=>{return;});
+      socket.disconnect(true);
+    }
+    incrementPlayerInstanceByToken(token, game, 1);
     var playerId = player.id;
     var nickname = player.nickname
     socket.to(_gameId).emit('new player', {playerId: playerId, nickname: nickname});
     console.log(nickname + ' joined room ' + _gameId);
   });
-  //Determine the hash
+  //Determine the token
 
   socket.on('send stripped game info', function(msg){
     var data =getPlayerAndGameFromSocket(socket);
@@ -177,8 +180,7 @@ io.on('connection', function(socket){
           phrase: game.phrase
         });
         setTimeout(()=>{
-          game.gamePhase = GAME_PHASE.SELECTION;
-          game.guessedLetters = "";
+          game = resetGame(game);
           game = rotateQueueAndReturnGame(game);
           setGameInDatabase(game);
           io.in(game.id).emit('rotate and new round');
@@ -195,8 +197,7 @@ io.on('connection', function(socket){
         // end game
         io.in(game.id).emit('game lost', {letter:letter, phrase: game.phrase});
         setTimeout(()=>{
-          game.gamePhase = GAME_PHASE.SELECTION;
-          game.guessedLetters = "";
+          game = resetGame(game);
           game = rotateQueueAndReturnGame(game)
           setGameInDatabase(game);
           io.in(game.id).emit('rotate and new round');
@@ -209,17 +210,49 @@ io.on('connection', function(socket){
   });
   socket.on('disconnect', function(){
     var data = getPlayerAndGameFromSocket(socket);
-    //Remove player and update the activeGuesser
-    /*var updatedGame = removePlayerFromGame(data.player, data.game);TODO figure out what to do if someone leaves?
-    socket.to(_gameId).emit('remove player',
-    {id: data.player.id, nickname: data.player.nickname, activeGuesser: updatedGame.activeGuesser});
-    socket.leave(_gameId);*/
-    console.log(`${data.player.nickname} left room  ${_gameId}.`);
+    var playerInstances = incrementPlayerInstanceByToken(data.player.token,
+      game, -1);
+    if (playerInstances <= 0){
+      //Remove player and update the activeGuesser
+      updatedGame = removePlayerFromGame(data.player, data.game);
+      socket.in(data.game.id).emit('remove player',
+      {id: data.player.id,
+        activeGuesser: updatedGame.activeGuesser});
+      socket.leave(_gameId);
+    }
+    console.log(`${data.player.nickname} left room  ${_gameId}. `+
+    ` Instances: ${playerInstances}`);
     console.log('socket disconnected');
   })
 });
 
-//user Functions
+// User Functions
+
+//Resets essential variables and returns game.
+function resetGame(game){
+  game.gamePhase = GAME_PHASE.SELECTION;
+  game.guessedLetters = "";
+  return game;
+}
+/**
+  * Increments the instance count of the player and returns game;
+  * @param {string} token - the  token for each browser.
+  * @param {Object} game - the game object including playerQueue
+  * @param {int} change - +1 or -1
+  */
+function incrementPlayerInstanceByToken(token, game, change){
+  if (!token || !game) return;
+  for (var i = 0, length = game.playerQueue.length;
+  i < length; i++){
+    player = game.playerQueue[i];
+    if (player.token == token){
+      player.instances += change;
+      game.playerQueue[i] = player;
+      setGameInDatabase(game);
+      return player.instances;
+    }
+  }
+}
 
 function getIncorrectGuesses(game){
   var phrase = game.phrase;
@@ -251,43 +284,54 @@ function getNewActiveGuesserIndex(game)
 //Gets the player and game using socket url and cookies
 function getPlayerAndGameFromSocket(socket){
   var gameId = parseGameIdFromSocket(socket);
-  var hash = getPlayerHashFromSocket(socket);
+  var token = getPlayerTokenFromSocket(socket);
   var game = fetchGameFromDatabase(gameId);
-  var player = getPlayerUsingHash(hash, game);
+  var player = getPlayerUsingToken(token, game);
   return {player: player, game: game};
 }
 
-//Return the id of the player with with matching hash.
-function getPlayerUsingHash(hash, game){
+//Return the id of the player with with matching token.
+function getPlayerUsingToken(token, game){
   var result = undefined;
   if (!game) return result;
   game.playerQueue.forEach((player)=>{
-    if (hash === player.hash) result = player;
+    if (token === player.token) result = player;
   });
   return result;
 }
 
 //Returns undefined if no token found.
-  function getPlayerHashFromSocket(socket){
+  function getPlayerTokenFromSocket(socket){
     return cookie.parse(socket.handshake.headers.cookie).token;
   }
 
 /**
-  * Updates game in database
-  *
+  * Updates game in database and gets the new activeGuesser.
+  * Logic for activeGuesser is tricky due to splice and nature of game.
+  * Host cannot be guesser, and if no. of players < 2, -1.
   */
 function removePlayerFromGame(player, game){
   var playerQueue = game.playerQueue;
   var index = playerQueue.indexOf(player)
   if (index == -1) `node --trace-uncaught ...` + ": player not found";
-  playerQueue.splice(index);
-  if (game.activeGuesser >= playerQueue.length){
-    if (playerQueue.length < 2) {
-      game.activeGuesser = -1;
-    } else {
-      game.activeGuesser = 1;
-    }
+  console.log(playerQueue, index)
+  playerQueue.splice(index, 1);
+  console.log(playerQueue)
+  if (index == 0){
+    // Host left! Start new round.
+    game.activeGuesser = 1;
+    game = resetGame(game);
+  } else if (game.activeGuesser > playerQueue.length){
+    game.activeGuesser = 1;
+  } else if (game.activeGuesser > index){
+    game.activeGuesser -= 1;
+  }// else keep the index!
+
+  //If there's only two players... no active guesser.
+  if (playerQueue.length < 2){
+    game.activeGuesser = -1;
   }
+  console.log(`${playerQueue.length} - removed 1 player.`)
   game.playerQueue = playerQueue;
   setGameInDatabase(game)
   return game;
@@ -444,22 +488,11 @@ function randomName(){
 
 };//END module.exports
 
+
+
 var Player = function(gameId, playerId, nickname){
-  this.hash = hash(gameId + playerId + SERVER_SALT);
+  this.token = hash(gameId + playerId + SERVER_SALT);
   this.id = playerId;
   this.nickname = nickname;
-};
-
-var player1 = {hash: "20rsndjfaskbf32wasdfiawodjf", id: "145935", nickname: "Jimmy", color: "#444"};
-var player2 = {hash: "sadfh4asd9f0asdjf32Wsdfh32s", id: "347923", nickname: "Kim", color: "#222"};
-var players = {player1, player2};
-
-var Game = function(id, playerQueue, guessedLetters, phrase, hint, maxPlayers, activeGuesser){
-  this.id = id;
-  this.playerQueue = playerQueue;
-  this.guessedLetters = guessedLetters;
-  this.phrase = phrase;
-  this.hint = hint;
-  this.maxPlayers = maxPlayers;
-  this.activeGuesser = activeGuesser;
+  this.instances = 0;//When initialized, there will be one!
 };
