@@ -134,18 +134,18 @@ io.on('connection', function(socket){
     if (player !== game.playerQueue[0]){ // If not host, return
       return;
     }
-    var hint = msg.hint;
-    var phrase = msg.phrase;
+    var hint = msg.hint.toLowerCase();
+    var phrase = msg.phrase.toLowerCase();
     console.log(`${game.id}: ${player.nickname} tried |${hint}| and |${phrase}|`)
     //Check if phrase is valid. If not, complain. Remove all uneeded characters.
-    if (!(!!phrase && /[A-Za-z]/g.test(phrase))){
+    if (!(!!phrase && /[a-z]/g.test(phrase))){
       socket.emit('phrase rejected');
       return;
     }
-    regexp = /[A-Za-z']+/g
+    regexp = /[a-z']+/g
     var result;
     while ((result = regexp.exec(phrase))!=null){
-      search = utilFunctions.binarySearch(wordArray, result[0].toLowerCase());
+      search = utilFunctions.binarySearch(wordArray, result[0]);
       if (search == -1){//Phrase no good..
         socket.emit('phrase rejected');
         return;
@@ -184,7 +184,7 @@ io.on('connection', function(socket){
       // good letter
       var renderedPhrase = getRenderedPhraseFromGame(game);
       if (renderedPhrase === game.phrase){
-        // game won!
+        // renderedPhrase!
         io.in(game.id).emit('game won', {
           phrase: game.phrase
         });
@@ -460,7 +460,7 @@ function getRenderedPhraseFromGame(game){
       result += c;
     }
   }
-  return result;
+  return result.toLowerCase();
 }
 
 function strippedPlayerAndGameInfo(player, gameId){
