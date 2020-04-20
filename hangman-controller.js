@@ -389,13 +389,10 @@ function addNewPlayerAndReturn(game)
   * @param {socket} socket - the socket.io object
   */
 function parseGameIdFromSocket(socket){
-  url = socket.request.headers.referer;
-  var gameId = url.match(/\/[A-Za-z0-9]{6}\/?/)[0];
-  if (!!gameId){
-    return gameId.match(/[^\/]{6}/)[0];
-  } else {
-    return undefined;
-  }
+  var pathname = new URL(socket.request.headers.referer).pathname;
+  pathname = pathname.split('/');
+  if (pathname.length == 0) return undefined;
+  return pathname[1];
 }
 /**
   * Genearates a 6-character game id to insert into the database
