@@ -92,7 +92,11 @@ app.use(function (req, res, next) {
 //socket routing
 io.on('connection', function(socket){
   var _gameId = parseGameIdFromSocket(socket);
-  if (_gameId == undefined || !databaseHasGameById(_gameId)) return;
+  if (_gameId == undefined || !databaseHasGameById(_gameId))
+  {
+    console.log("Weird connection! " + socket.request.headers.referer);
+    return;
+  }
   socket.join(_gameId, function(){
     var token = getPlayerTokenFromSocket(socket);
     console.log("token joined:" + token)
