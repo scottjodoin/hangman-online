@@ -4,7 +4,12 @@
 let express = require('express');
 let app  = express();
 let  fs = require('fs');
-var server = app.listen(process.env.PORT);
+let port = process.env.PORT;
+if (port == null || port == "") {
+  port = 8000;
+}
+app.listen(port);
+var server = app.listen(port);
 var io = require('socket.io').listen(server);
 var cookieParser = require('cookie-parser');
 let hangmanController = require('./hangman-controller');
