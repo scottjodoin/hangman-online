@@ -392,7 +392,7 @@ function parseGameIdFromSocket(socket){
   var pathname = new URL(socket.request.headers.referer).pathname;
   pathname = pathname.split('/');
   if (pathname.length == 0) return undefined;
-  return pathname[1];
+  return pathname[1].toUpperCase();
 }
 /**
   * Genearates a 6-character game id to insert into the database
