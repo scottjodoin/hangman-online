@@ -13,8 +13,7 @@ var server = app.listen(port);
 var io = require('socket.io').listen(server);
 var cookieParser = require('cookie-parser');
 let hangmanController = require('./hangman-controller');
-const wordListPath = require('word-list');
-const wordArray = fs.readFileSync(wordListPath, 'utf8').split('\n'); //added contractions, too
+const wordArray = fs.readFileSync(__dirname + "/words.txt", 'utf8').split('\n'); //added contractions, too
 
 //set up express and socket.io cookies
 app.use(cookieParser());
