@@ -193,6 +193,7 @@ io.on('connection', function(socket){
     } else {
       // bad letter
       var incorrectLetters = getIncorrectGuesses(game);
+      console.log(incorrectLetters);
       if (incorrectLetters >= 7){
         // end game
         io.in(game.id).emit('game lost', {letter:letter, phrase: game.phrase});
@@ -201,7 +202,7 @@ io.on('connection', function(socket){
           game = rotateQueueAndReturnGame(game)
           setGameInDatabase(game);
           io.in(game.id).emit('rotate and new round');
-        }, 2000);
+        }, 1000);
       } else {
         io.in(game.id).emit('incorrect letter',
         {letter:letter, activeGuesser:activeGuesser});
@@ -210,24 +211,39 @@ io.on('connection', function(socket){
   });
   socket.on('disconnect', function(){
     var data = getPlayerAndGameFromSocket(socket);
-    var playerInstances = incrementPlayerInstanceByToken(data.player.token,
-      game, -1);
-    if (playerInstances <= 0){
-      //Remove player and update the activeGuesser
-      updatedGame = removePlayerFromGame(data.player, data.game);
-      socket.in(data.game.id).emit('remove player',
-      {id: data.player.id,
-        activeGuesser: updatedGame.activeGuesser});
-      socket.leave(_gameId);
+    if (!data){
+      logError("disconnect data undefined");
     }
-    console.log(`${data.player.nickname} left room  ${_gameId}. `+
-    ` Instances: ${playerInstances}`);
-    console.log('socket disconnected');
+    var timeoutLength = 1000;
+    setTimeout(()=>{
+      var playerInstances = incrementPlayerInstanceByToken(data.player.token,
+        game, -1);
+      if (playerInstances <= 0){
+        //Remove player and update the activeGuesser
+        var updatedGame = removePlayerFromGame(data.player, data.game);
+        socket.in(data.game.id).emit('remove player',
+        {id: data.player.id,
+          activeGuesser: updatedGame.activeGuesser});
+        socket.leave(game.id);
+        console.log(`${data.player.nickname} left room  ${_gameId}. `+
+        ` Instances: ${playerInstances}`);
+
+        // Room empty, remove game from database
+        if (updatedGame.playerQueue.length === 0){
+          removeGameFromDatabase(game.id);
+          console.log(`${updatedGame.id} game removed.`)
+          return;
+        }
+      }
+    },timeoutLength);
+
   })
 });
 
 // User Functions
-
+function logError(err){
+  console.log(`Error: ${err}`);
+}
 //Resets essential variables and returns game.
 function resetGame(game){
   game.gamePhase = GAME_PHASE.SELECTION;
@@ -314,9 +330,7 @@ function removePlayerFromGame(player, game){
   var playerQueue = game.playerQueue;
   var index = playerQueue.indexOf(player)
   if (index == -1) `node --trace-uncaught ...` + ": player not found";
-  console.log(playerQueue, index)
   playerQueue.splice(index, 1);
-  console.log(playerQueue)
   if (index == 0){
     // Host left! Start new round.
     game.activeGuesser = 1;
@@ -408,7 +422,9 @@ function setGameInDatabase(game){
   * @param {string} gameId
   */
 function removeGameFromDatabase(gameId){
-  _games.splice(gameId);
+  if (gameId in _games){
+    delete _games[gameId];
+  }
 }
 
 /**
