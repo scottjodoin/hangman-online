@@ -136,7 +136,7 @@ io.on('connection', function(socket){
     }
     var hint = msg.hint;
     var phrase = msg.phrase;
-
+    console.log(`${game.id}: ${player.nickname} tried |${hint}| and |${phrase}|`)
     //Check if phrase is valid. If not, complain. Remove all uneeded characters.
     if (!(!!phrase && /[A-Za-z]/g.test(phrase))){
       socket.emit('phrase rejected');
