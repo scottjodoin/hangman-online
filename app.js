@@ -6,9 +6,8 @@ let app  = express();
 let  fs = require('fs');
 let port = process.env.PORT;
 if (port == null || port == "") {
-  port = 8000;
+  port = 3000;
 }
-app.listen(port);
 var server = app.listen(port);
 var io = require('socket.io').listen(server);
 var cookieParser = require('cookie-parser');
@@ -30,4 +29,4 @@ hangmanController(app, io,  wordArray);
 
 //listen on port 3000
 
-console.log("listening on port 3000");
+console.log("listening on port " + port);
