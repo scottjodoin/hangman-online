@@ -92,9 +92,13 @@ app.use(function (req, res, next) {
 //socket routing
 io.on('connection', function(socket){
   var _gameId = parseGameIdFromSocket(socket);
-  if (_gameId == undefined || !databaseHasGameById(_gameId))
+  if (_gameId == undefined)
   {
-    console.log("Weird connection! " + socket.request.headers.referer);
+    console.log(`Cannot get gameId! |${socket.request.headers.referer}|`);
+    return;
+  }
+  if (!databaseHasGameById(_gameId)){
+    console.log(`request for bad gameId: |${_gameId}|`)
     return;
   }
   socket.join(_gameId, function(){
@@ -386,7 +390,7 @@ function addNewPlayerAndReturn(game)
   */
 function parseGameIdFromSocket(socket){
   url = socket.request.headers.referer;
-  var gameId = url.match(/\/[A-Za-z0-9]{6}\/?$/)[0];
+  var gameId = url.match(/\/[A-Za-z0-9]{6}\/?/)[0];
   if (!!gameId){
     return gameId.match(/[^\/]{6}/)[0];
   } else {
