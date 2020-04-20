@@ -95,6 +95,7 @@ io.on('connection', function(socket){
   if (_gameId == undefined || !databaseHasGameById(_gameId)) return;
   socket.join(_gameId, function(){
     var token = getPlayerTokenFromSocket(socket);
+    console.log("token joined:" + token)
     var game = fetchGameFromDatabase(_gameId);
     var player = getPlayerUsingToken(token, game);
     if (!player) {
