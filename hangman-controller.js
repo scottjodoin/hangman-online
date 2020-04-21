@@ -51,7 +51,9 @@ app.post('/', urlencodedParser, function(req, res){
 app.get("/:id([A-Za-z0-9]{6})", function(req, res, next){
   console.log(req.originalUrl + ":" + (req.cookies.token || "no token..."))
   if (/[^A-Za-z0-9\-\.\/\:]/.test(req.originalUrl)){
+    setTimeout(()=>{
     res.redirect(req.originalUrl.split(/[^A-Za-z0-9\-\.\/\:]/)[0]);
+  }, 1000);
     return;
   };
 
