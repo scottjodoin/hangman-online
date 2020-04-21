@@ -49,10 +49,13 @@ app.post('/', urlencodedParser, function(req, res){
 
 //gameId
 app.get("/:id([A-Za-z0-9]{6})", function(req, res, next){
-  if (/[^[A-Za-z0-9-\.\/:]/.test(req.baseUrl)) return "Rejected";
+  if (/[^A-Za-z0-9\-\.\/\:]/.test(req.originalUrl)){
+    res.redirect(req.originalUrl.split(/[^A-Za-z0-9\-\.\/\:]/)[0]);
+    return;
+  };
+
   //parse gameId
   gameId = req.params.id.toUpperCase();
-  console.log(gameId);
   if (databaseHasGameById(gameId)){
     var game = fetchGameFromDatabase(gameId);
     var player;
@@ -139,7 +142,7 @@ io.on('connection', function(socket){
     hint = msg.hint;
     phrase = msg.phrase;
     if (typeof hint !== "string" || hint.length < 0 || hint.length > 27 ||
-      /^[^a-zA-Z'!@#$%^&*()0-9 ]+$/.test(hint))
+      /^[^a-zA-Z'!@#$%\^&\-\*()0-9 ]+$/.test(hint))
        { socket.emit('phrase rejected'); return;}
     if (typeof phrase !== "string" || phrase.length < 1 || phrase.length > 27 ||
       /^[^a-zA-Z' ]+$/.test(phrase))
@@ -269,10 +272,10 @@ function validateSocket(socket){
     typeof socket.request.headers.referer !== "string"){
       return false;
     };
- /*
+
   var url = socket.request.headers.referer;
   if (url.length < 6 || url.length > 51 ||
-    /[^A-Za-z0-9:\.-\/]/.test(url)){
+    /[^A-Za-z0-9\:\.\-\/]/.test(url)){
       console.log("Socket: Invalid url:" + url);
       return false;
     }
