@@ -49,8 +49,11 @@ app.post('/', urlencodedParser, function(req, res){
 
 //gameId
 app.get("/:id([A-Za-z0-9]{6})", function(req, res, next){
+
+
   //parse gameId
   gameId = req.params.id.toUpperCase();
+  console.log(gameId);
   if (databaseHasGameById(gameId)){
     var game = fetchGameFromDatabase(gameId);
     var player;
