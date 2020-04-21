@@ -349,11 +349,8 @@ function getNewActiveGuesserIndex(game)
 //Gets the player and game using socket url and cookies
 function getPlayerAndGameFromSocket(socket){
   var gameId = parseGameIdFromSocket(socket);
-  console.log(gameId);
   var token = getPlayerTokenFromSocket(socket);
-  console.log("function:"+token);
   var game = fetchGameFromDatabase(gameId);
-  console.log(game);
   var player = getPlayerUsingToken(token, game);
   if (player === "Not found!") return "Player not found.";
   return {player: player, game: game};
