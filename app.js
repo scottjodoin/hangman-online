@@ -17,6 +17,12 @@ const wordArray = fs.readFileSync(__dirname + "/words.txt", 'utf8').split('\n');
 //set up express and socket.io cookies
 app.use(cookieParser());
 
+//Filter out fb and google spiders.
+app.use('/robots.txt', function (req, res, next) {
+    res.type('text/plain')
+    res.send("User-agent: *\nAllow: /\nDisallow: /*");
+});
+
 //set up template engine
 app.set('view engine', 'ejs');
 
