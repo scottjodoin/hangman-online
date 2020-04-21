@@ -98,9 +98,9 @@ app.use(function (req, res, next) {
 
 //socket routing
 io.on('connection', function(socket){
-  if (!validateSocket(socket)){return "Bad Socket."};
+  console.log("Socket connected");
+  if (!validateSocket(socket)){console.log("Bad Socket."); return;};
   var _gameId = parseGameIdFromSocket(socket);
-
   socket.join(_gameId, function(){
     var token = getPlayerTokenFromSocket(socket);
     if (typeof token !== "string" || token.length !== 40 ||
@@ -109,6 +109,7 @@ io.on('connection', function(socket){
     var game = fetchGameFromDatabase(_gameId);
     var player = getPlayerUsingToken(token, game);
     if (player === "Not Found!") {
+
       socket.leave(_gameId,()=>{return;});
       socket.disconnect(true);
       return;
