@@ -69,17 +69,6 @@ app.get("/:id([A-Za-z0-9]{6})", function(req, res, next){
         res.send("Room full.");//No room left
         return;
       };
-      player = addNewPlayerAndReturn(game);
-      res.cookie('token', player.token, {maxAge: 50 * 1000, httpOnly: true});
-      setGameInDatabase(game);//TODO: asyncronous
-    } else {
-      //yes token: fetch player
-      var player = getPlayerUsingToken(token, game);
-      if (player === "Not Found!"){//Bad cookie.
-        player = addNewPlayerAndReturn(game);//TODO: Is there a way to not have copied code from above?
-        res.cookie('token', player.token, {maxAge: 15 * 60 * 1000, httpOnly: true});
-        setGameInDatabase(game);//TODO: asyncronous
-      }
     }
     //send only the necessary information
     var stripped = strippedPlayerAndGameInfo(player, gameId);
@@ -96,44 +85,46 @@ app.use(function (req, res, next) {
   res.status(404).send("Sorry can't find that!");
 });
 
-//socket routing
+
+// Socket routing
 io.on('connection', function(socket){
-  console.log("Socket connected");
   if (!validateSocket(socket)){console.log("Bad Socket."); return;};
+
+  // Initialize or gather player
   var _gameId = parseGameIdFromSocket(socket);
-  socket.join(_gameId, function(){
-    var token = getPlayerTokenFromSocket(socket);
+  var token = getPlayerTokenFromSocket(socket);
+  if (!databaseHasGameById(_gameId)) return;
+  var game = fetchGameFromDatabase(_gameId);
+  var player;
+  if (token === undefined){
+    player = addNewPlayerAndReturn(game);
+    token = player.token;
+    socket.emit('set cookie', {value: player.token, options: {expires: 1}})
+  } else {
     if (typeof token !== "string" || token.length !== 40 ||
       /[^a-z0-9]/.test(token)) {return "Bad token!"};
-    console.log("token joined:" + token)
-    var game = fetchGameFromDatabase(_gameId);
-    var player = getPlayerUsingToken(token, game);
-    if (player === "Not Found!") {
-
-      socket.leave(_gameId,()=>{return;});
-      socket.disconnect(true);
-      return;
+    player = getPlayerUsingToken(token, game);
+    if (player === "Not Found!"){
+      player = addNewPlayerAndReturn(game);
+      socket.emit('set cookie', {value: player.token, options: {expires: 1}})
+      token = player.token
     }
+  }
+
+  // Connect: join the room and send reset info
+  socket.join(_gameId, function(){
+    console.log("token joined:" + token)
     incrementPlayerInstanceByToken(token, game, 1);
-    var playerId = player.id;
-    var nickname = player.nickname
-    socket.to(_gameId).emit('new player', {playerId: playerId, nickname: nickname});
-    console.log(nickname + ' joined room ' + _gameId);
-  });
-  //Determine the token
-
-  socket.on('send stripped game info', function(msg){
-    if (!validateSocket(socket)){return "Bad Socket."};
-    var data =getPlayerAndGameFromSocket(socket);
-    var game = data.game;
-    var player = data.player;
-    var stripped = strippedPlayerAndGameInfo(player, _gameId);
+    var stripped = strippedPlayerAndGameInfo(player, game.id);
     socket.emit('reset information', stripped);
-  });
+    socket.to(game.id).emit('new player', {playerId: player.id, nickname: player.nickname});
+    console.log(player.nickname + ' joined room ' + game.id);
 
+  });
 
   socket.on('hint and phrase try', function (msg){
     if (!validateSocket(socket)){return "Bad Socket."};
+
     // Accept only from host, reject or start round
     var data = getPlayerAndGameFromSocket(socket);
     var game = data.game;
@@ -164,8 +155,8 @@ io.on('connection', function(socket){
       }
     }
 
-    console.log(`${game.id}: ${player.nickname} tried |${hint}| and |${phrase}|`)
 
+    // Send back relevant information
     game.guessedLetters = "";
     game.hint = hint;
     game.phrase = phrase;
@@ -293,7 +284,7 @@ function validateSocket(socket){
   typeof socket.handshake.headers !== "object" ||
   typeof socket.handshake.headers.cookie !== "string"){
     console.log("Socket: Missing cookies");
-    return false;
+    //return false;
   }
   //*/
   return true;
@@ -358,8 +349,11 @@ function getNewActiveGuesserIndex(game)
 //Gets the player and game using socket url and cookies
 function getPlayerAndGameFromSocket(socket){
   var gameId = parseGameIdFromSocket(socket);
+  console.log(gameId);
   var token = getPlayerTokenFromSocket(socket);
+  console.log("function:"+token);
   var game = fetchGameFromDatabase(gameId);
+  console.log(game);
   var player = getPlayerUsingToken(token, game);
   if (player === "Not found!") return "Player not found.";
   return {player: player, game: game};
@@ -377,6 +371,7 @@ function getPlayerUsingToken(token, game){
 
 //Returns undefined if no token found.
   function getPlayerTokenFromSocket(socket){
+    if (typeof socket.handshake.headers.cookie !== "string") return undefined;
     return cookie.parse(socket.handshake.headers.cookie).token;
   }
 

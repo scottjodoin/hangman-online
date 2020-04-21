@@ -10,11 +10,7 @@
   </head>
   <body>
     <!-- Overlay -->
-    <%
-      var displayAttribute = "style=\"display:"
-      displayAttribute += (playerIndex == 0 && game.gamePhase == 0) ? "block\"" : "none\"";
-    %>
-    <div  class="g-overlay" <%= displayAttribute %>>
+    <div  class="g-overlay" >
       <div id="overlay-phrase-container" class="g-container">
         <h1>Choose a Word</h1>
         <label for="game-id">Copy and share with your friends:</label>
@@ -80,6 +76,10 @@
     <script>SVGInject(document.getElementById('hangman-image'));</script>
     <script src="/socket.io/socket.io.js"></script>
     <script src="/js/jquery-1.10.1.min.js"></script>
+    <script src="/js/js.cookie.min.js"></script>
+    <script type="module">
+      import * as Cookies from './js/js.cookie.min.js'
+    </script>
     <link rel="stylesheet" type="text/css" href="css/jquery.svg.css">
     <script type="text/javascript" src="js/jquery.svg.js"></script>
     <script src="/js/jkeyboard.js"></script>
