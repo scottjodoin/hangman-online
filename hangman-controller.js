@@ -49,8 +49,7 @@ app.post('/', urlencodedParser, function(req, res){
 
 //gameId
 app.get("/:id([A-Za-z0-9]{6})", function(req, res, next){
-
-
+  if (/[^[A-Za-z0-9-\.\/:]/.test(req.baseUrl)) return "Rejected";
   //parse gameId
   gameId = req.params.id.toUpperCase();
   console.log(gameId);
