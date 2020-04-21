@@ -7,7 +7,6 @@ let cookie = require('cookie');
 const SERVER_SALT = Math.random().toString().substring(2); //used for encrypting cookies
 const COOKIE_OPTIONS = {
   maxAge: 15 * 60 * 1000, //15 minute expiry
-  httpOnly: true
 }
 const GAME_PHASE = {
   SELECTION: 0,
@@ -68,7 +67,7 @@ app.get("/:id([A-Za-z0-9]{6})", function(req, res, next){
     } else {
       //yes token: fetch player
       var player = getPlayerUsingToken(token, game);
-      if (!player){//Bad cookie.
+      if (player === "Not Found!"){//Bad cookie.
         player = addNewPlayerAndReturn(game);//TODO: Is there a way to not have copied code from above?
         res.cookie('token', player.token, {maxAge: 15 * 60 * 1000, httpOnly: true});
         setGameInDatabase(game);//TODO: asyncronous
@@ -91,24 +90,20 @@ app.use(function (req, res, next) {
 
 //socket routing
 io.on('connection', function(socket){
+  if (!validateSocket(socket)){return "Bad Socket."};
   var _gameId = parseGameIdFromSocket(socket);
-  if (_gameId == undefined)
-  {
-    console.log(`Cannot get gameId! |${socket.request.headers.referer}|`);
-    return;
-  }
-  if (!databaseHasGameById(_gameId)){
-    console.log(`request for bad gameId: |${_gameId}|`)
-    return;
-  }
+
   socket.join(_gameId, function(){
     var token = getPlayerTokenFromSocket(socket);
+    if (typeof token !== "string" || token.length !== 40 ||
+      /[^a-z0-9]/.test(token)) {return "Bad token!"};
     console.log("token joined:" + token)
     var game = fetchGameFromDatabase(_gameId);
     var player = getPlayerUsingToken(token, game);
-    if (!player) {
+    if (player === "Not Found!") {
       socket.leave(_gameId,()=>{return;});
       socket.disconnect(true);
+      return;
     }
     incrementPlayerInstanceByToken(token, game, 1);
     var playerId = player.id;
@@ -119,6 +114,7 @@ io.on('connection', function(socket){
   //Determine the token
 
   socket.on('send stripped game info', function(msg){
+    if (!validateSocket(socket)){return "Bad Socket."};
     var data =getPlayerAndGameFromSocket(socket);
     var game = data.game;
     var player = data.player;
@@ -126,31 +122,41 @@ io.on('connection', function(socket){
     socket.emit('reset information', stripped);
   });
 
-// Accept only from host, reject or start round
+
   socket.on('hint and phrase try', function (msg){
+    if (!validateSocket(socket)){return "Bad Socket."};
+    // Accept only from host, reject or start round
     var data = getPlayerAndGameFromSocket(socket);
     var game = data.game;
     var player = data.player;
-    if (player !== game.playerQueue[0]){ // If not host, return
-      return;
+    if (player !== game.playerQueue[0]){
+      return "Rejected";
     }
-    var hint = msg.hint.toLowerCase();
-    var phrase = msg.phrase.toLowerCase();
-    console.log(`${game.id}: ${player.nickname} tried |${hint}| and |${phrase}|`)
-    //Check if phrase is valid. If not, complain. Remove all uneeded characters.
-    if (!(!!phrase && /[a-z]/g.test(phrase))){
-      socket.emit('phrase rejected');
-      return;
-    }
-    regexp = /[a-z']+/g
+
+    // Validate input
+    hint = msg.hint;
+    phrase = msg.phrase;
+    if (typeof hint !== "string" || hint.length < 0 || hint.length > 27 ||
+      /^[^a-zA-Z'!@#$%^&*()0-9 ]+$/.test(hint))
+       { socket.emit('phrase rejected'); return;}
+    if (typeof phrase !== "string" || phrase.length < 1 || phrase.length > 27 ||
+      /^[^a-zA-Z' ]+$/.test(phrase))
+      { socket.emit('phrase rejected'); return;}
+    hint = hint.toLowerCase();
+    phrase = phrase.toLowerCase();
+
+    var regexp = /[a-z']+/g
     var result;
     while ((result = regexp.exec(phrase))!=null){
       search = utilFunctions.binarySearch(wordArray, result[0]);
-      if (search == -1){//Phrase no good..
+      if (search == -1){
         socket.emit('phrase rejected');
         return;
       }
     }
+
+    console.log(`${game.id}: ${player.nickname} tried |${hint}| and |${phrase}|`)
+
     game.guessedLetters = "";
     game.hint = hint;
     game.phrase = phrase;
@@ -162,12 +168,16 @@ io.on('connection', function(socket){
   });
 
   socket.on('letter try', function (letter){
+    if (!validateSocket(socket)){return "Bad Socket."};
+    if (typeof letter !== "string" || letter.length !== 1 ||
+      /[^A-Za-z]/.test(letter)) { return "Rejected";}
+
     var data;
     try{
       data = getPlayerAndGameFromSocket(socket);
       if (data.player !== data.game.playerQueue[data.game.activeGuesser]) return;
     } catch(err){return};
-    if (letter.match(/[^A-za-z]{1}$/)) return; //has to be a letter
+    if (letter.match(/[^A-za-z]{1}$/)) return "Rejected."; //has to be a letter
     var player = data.player;
     var game = data.game;
     var phrase = data.game.phrase.toLowerCase();
@@ -219,11 +229,11 @@ io.on('connection', function(socket){
     }
   });
   socket.on('disconnect', function(){
+    if (!validateSocket(socket)){return "Bad Socket."};
     var data = getPlayerAndGameFromSocket(socket);
-    if (!data){
-      logError("disconnect data undefined");
-    }
-    var timeoutLength = 1000;
+    var game = data.game;
+    var player = data.player;
+    var timeoutLength = 30*1000;
     setTimeout(()=>{
       var playerInstances = incrementPlayerInstanceByToken(data.player.token,
         game, -1);
@@ -250,6 +260,35 @@ io.on('connection', function(socket){
 });
 
 // User Functions
+
+function validateSocket(socket){
+  if (typeof socket !== "object" || typeof socket.request !== "object" ||
+    typeof socket.request.headers !== "object" ||
+    typeof socket.request.headers.referer !== "string"){
+      return false;
+    };
+
+  var url = socket.request.headers.referer;
+  if (url.length < 6 || url.length > 42 ||
+    !/^[A-Za-z0-9:.-\/]+$/.test(url)){
+      console.log("Socket: Invalid url.");
+      return false;
+    }
+  var pathname = (new URL(url)).pathname.replace('/','');
+  if (pathname.length !== 6 || /[^A-Za-z0-9]/.test(pathname)){
+    console.log("Socket: Invalid pathname.");
+    return false;
+  }
+
+  if (typeof socket.handshake !== "object" ||
+  typeof socket.handshake.headers !== "object" ||
+  typeof socket.handshake.headers.cookie !== "string"){
+    console.log("Socket: Missing cookies");
+    return false;
+  }
+  return true;
+}
+
 function logError(err){
   console.log(`Error: ${err}`);
 }
@@ -312,12 +351,13 @@ function getPlayerAndGameFromSocket(socket){
   var token = getPlayerTokenFromSocket(socket);
   var game = fetchGameFromDatabase(gameId);
   var player = getPlayerUsingToken(token, game);
+  if (player === "Not found!") return "Player not found.";
   return {player: player, game: game};
 }
 
 //Return the id of the player with with matching token.
 function getPlayerUsingToken(token, game){
-  var result = undefined;
+  var result = "Not Found!";
   if (!game) return result;
   game.playerQueue.forEach((player)=>{
     if (token === player.token) result = player;
@@ -391,7 +431,7 @@ function addNewPlayerAndReturn(game)
 function parseGameIdFromSocket(socket){
   var pathname = new URL(socket.request.headers.referer).pathname;
   pathname = pathname.split('/');
-  if (pathname.length == 0) return undefined;
+  if (pathname.length == 0) return "Rejected";
   return pathname[1].toUpperCase();
 }
 /**
@@ -511,6 +551,7 @@ function randomName(){
 };//END module.exports
 
 
+//Schema and Object Definitions
 
 var Player = function(gameId, playerId, nickname){
   this.token = hash(gameId + playerId + SERVER_SALT);
@@ -518,3 +559,53 @@ var Player = function(gameId, playerId, nickname){
   this.nickname = nickname;
   this.instances = 0;//When initialized, there will be one!
 };
+
+const socketSchema = {
+  request: {
+    headers: {
+      referer: {
+        type: "string",
+        minLength: 6,
+        maxLength: 42,
+        pattern: /^[A-Za-z0-9.-\/]+$/,
+      }
+    }
+  }
+}
+const playerSchemaSimple = {
+  id: {
+    type: "string",
+    minLength: 1,
+    maxLength: 2,
+    pattern: /^\d+$/,
+  },
+  nickname: {
+    type: "string",
+    minLength: 2,
+    maxLength: 40,
+    pattern: /^[A-Za-z']+$/
+  },
+}
+
+const playerSchema = {
+
+  token: {
+    type: "string",
+    minLength: "40",
+    maxLength: "40",
+    pattern: /^[a-z0-9]+$/
+  },
+  instances: {
+    type: "number",
+    min: 0,
+    max: 5,
+  }
+}
+
+
+const phraseSchema = {
+  type: "string",
+  minLength: 2,
+  maxLength: 27,
+  pattern: /^[a-zA-Z' ]+$/
+}
