@@ -271,7 +271,7 @@ function validateSocket(socket){
   var url = socket.request.headers.referer;
   if (url.length < 6 || url.length > 51 ||
     !/^[A-Za-z0-9:.-\/]+$/.test(url)){
-      console.log("Socket: Invalid url.");
+      console.log("Socket: Invalid url:" + url);
       return false;
     }
   var pathname = (new URL(url)).pathname.replace('/','');
