@@ -49,8 +49,8 @@ app.post('/', urlencodedParser, function(req, res){
 
 //gameId
 app.get("/:id([A-Za-z0-9]{6})", function(req, res, next){
+  console.log(req.originalUrl + ":" + (req.cookies.token || "no token..."))
   if (/[^A-Za-z0-9\-\.\/\:]/.test(req.originalUrl)){
-    res.send("hmmm");
     res.redirect(req.originalUrl.split(/[^A-Za-z0-9\-\.\/\:]/)[0]);
     return;
   };
