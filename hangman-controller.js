@@ -267,7 +267,7 @@ function validateSocket(socket){
     typeof socket.request.headers.referer !== "string"){
       return false;
     };
-
+ /*
   var url = socket.request.headers.referer;
   if (url.length < 6 || url.length > 51 ||
     /[^A-Za-z0-9:\.-\/]/.test(url)){
@@ -286,6 +286,7 @@ function validateSocket(socket){
     console.log("Socket: Missing cookies");
     return false;
   }
+  //*/
   return true;
 }
 
