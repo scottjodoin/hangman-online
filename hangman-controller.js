@@ -269,7 +269,7 @@ function validateSocket(socket){
     };
 
   var url = socket.request.headers.referer;
-  if (url.length < 6 || url.length > 42 ||
+  if (url.length < 6 || url.length > 51 ||
     !/^[A-Za-z0-9:.-\/]+$/.test(url)){
       console.log("Socket: Invalid url.");
       return false;
