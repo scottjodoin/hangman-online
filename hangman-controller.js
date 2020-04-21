@@ -267,10 +267,10 @@ function validateSocket(socket){
     typeof socket.request.headers.referer !== "string"){
       return false;
     };
- /*
+
   var url = socket.request.headers.referer;
   if (url.length < 6 || url.length > 51 ||
-    !/^[A-Za-z0-9:.-\/]+$/.test(url)){
+    [^A-Za-z0-9:.-\/]/.test(url)){
       console.log("Socket: Invalid url:" + url);
       return false;
     }
@@ -285,7 +285,7 @@ function validateSocket(socket){
   typeof socket.handshake.headers.cookie !== "string"){
     console.log("Socket: Missing cookies");
     return false;
-  }*/
+  }
   return true;
 }
 
