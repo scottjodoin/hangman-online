@@ -13,12 +13,14 @@ const GAME_PHASE = {
   GUESSING: 1,
 }
 
+let _playersOnline = 0;
 let _games = {}
 //main
 module.exports = function(app, io, wordArray) {
 
 //html routing
 app.get('/', function(req, res){
+  res.render('index', {playersOnline: _playersOnline})
   res.sendFile(__dirname +  '/index.html');
 });
 
@@ -53,7 +55,7 @@ app.get("/:id([A-Za-z0-9]{6})", function(req, res, next){
   if (/[^A-Za-z0-9\-\.\/\:]/.test(req.originalUrl)){
     setTimeout(()=>{
     res.redirect(req.originalUrl.split(/[^A-Za-z0-9\-\.\/\:]/)[0]);
-  }, 1000);
+  }, 100);
     return;
   };
 
@@ -82,43 +84,58 @@ app.get("/:id([A-Za-z0-9]{6})", function(req, res, next){
 //404
 app.use(function (req, res, next) {
 
-  res.status(404).send("Sorry can't find that!");
+  res.status(404).send("Hangman - 404 - Sorry can't find that!");
 });
 
 
 // Socket routing
 io.on('connection', function(socket){
+    console.log("Connection made. Validating socket...")
   if (!validateSocket(socket)){console.log("Bad Socket."); return;};
-
   // Initialize or gather player
   var _gameId = parseGameIdFromSocket(socket);
   var token = getPlayerTokenFromSocket(socket);
+  console.log("Socket valid. Token = " + token || "undefined")
+  console.log("Checking if game exists...");
   if (!databaseHasGameById(_gameId)) return;
+  console.log("Game exists.");
   var game = fetchGameFromDatabase(_gameId);
   var player;
+  var playerInstances;
   if (token === undefined){
+    // Client's first time visiting this website.
     player = addNewPlayerAndReturn(game);
     token = player.token;
-    socket.emit('set cookie', {value: player.token, options: {expires: 1}})
+    _playersOnline += 1;
+    socket.emit('set cookie', {value: player.token, options: {expires: 1}},
+     _playersOnline)
   } else {
     if (typeof token !== "string" || token.length !== 40 ||
       /[^a-z0-9]/.test(token)) {return "Bad token!"};
+    console.log("Token exists. Checking to see if in game already...");
     player = getPlayerUsingToken(token, game);
     if (player === "Not Found!"){
+      console.log("Not in the game already. Adding new player.");
+      // Player has visited this website, but not this game.
       player = addNewPlayerAndReturn(game);
-      socket.emit('set cookie', {value: player.token, options: {expires: 1}})
       token = player.token
+      _playersOnline += 1;
+      socket.emit('set cookie', {value: player.token, options: {expires: 1}},
+      _playersOnline)
+    } else {
+      console.log("Player found! Adding instance.");
+      var playerInstances = incrementPlayerInstanceByToken(token, game, 1);
     }
   }
+  if (typeof playerInstances !== "number") return;
 
   // Connect: join the room and send reset info
   socket.join(_gameId, function(){
-    console.log("token joined:" + token)
-    incrementPlayerInstanceByToken(token, game, 1);
     var stripped = strippedPlayerAndGameInfo(player, game.id);
-    socket.emit('reset information', stripped);
-    socket.to(game.id).emit('new player', {playerId: player.id, nickname: player.nickname});
-    console.log(player.nickname + ' joined room ' + game.id);
+    socket.emit('reset information', stripped, _playersOnline);
+    socket.to(game.id).emit('new player',
+      {playerId: player.id, nickname: player.nickname}, _playersOnline);
+    console.log(player.nickname + ' joined room ' + game.id + ". Instance: " + playerInstances);
 
   });
 
@@ -138,10 +155,10 @@ io.on('connection', function(socket){
     phrase = msg.phrase;
     if (typeof hint !== "string" || hint.length < 0 || hint.length > 27 ||
       /^[^a-zA-Z'!@#$%\^&\-\*()0-9 ]+$/.test(hint))
-       { socket.emit('phrase rejected'); return;}
+       { socket.emit('phrase rejected',_playersOnline); return;}
     if (typeof phrase !== "string" || phrase.length < 1 || phrase.length > 27 ||
       /^[^a-zA-Z' ]+$/.test(phrase))
-      { socket.emit('phrase rejected'); return;}
+      { socket.emit('phrase rejected',_playersOnline); return;}
     hint = hint.toLowerCase();
     phrase = phrase.toLowerCase();
 
@@ -150,11 +167,10 @@ io.on('connection', function(socket){
     while ((result = regexp.exec(phrase))!=null){
       search = utilFunctions.binarySearch(wordArray, result[0]);
       if (search == -1){
-        socket.emit('phrase rejected');
+        socket.emit('phrase rejected',_playersOnline);
         return;
       }
     }
-
 
     // Send back relevant information
     game.guessedLetters = "";
@@ -164,7 +180,15 @@ io.on('connection', function(socket){
     game.activeGuesser = 1;//The first person aside from the host...
     setGameInDatabase(game);
     var renderedPhrase = getRenderedPhraseFromGame(game);
-    io.in(_gameId).emit('round start', {hint: hint, phrase: renderedPhrase, activeGuesser: game.activeGuesser});
+    io.in(_gameId).emit(
+      'round start',
+      {
+        hint: hint,
+        phrase: renderedPhrase,
+        activeGuesser: game.activeGuesse
+      },
+      _playersOnline
+    );
   });
 
   socket.on('letter try', function (letter){
@@ -197,15 +221,21 @@ io.on('connection', function(socket){
         // renderedPhrase!
         io.in(game.id).emit('game won', {
           phrase: game.phrase
-        });
+        },
+        _playersOnline
+      );
         game = resetGame(game);
         game = rotateQueueAndReturnGame(game);
         setGameInDatabase(game);
-        io.in(game.id).emit('rotate and new round');
+        io.in(game.id).emit('rotate and new round', _playersOnline);
 
       } else {
         io.in(game.id).emit('correct letter',
-        {phrase: getRenderedPhraseFromGame(game), activeGuesser:activeGuesser});
+        {
+          phrase: getRenderedPhraseFromGame(game),
+          activeGuesser:activeGuesser
+        },
+        _playersOnline);
       }
 
     } else {
@@ -214,46 +244,61 @@ io.on('connection', function(socket){
       console.log(incorrectLetters);
       if (incorrectLetters >= 7){
         // end game
-        io.in(game.id).emit('game lost', {letter:letter, phrase: game.phrase});
+        io.in(game.id).emit('game lost',
+        {
+          letter:letter,
+          phrase: game.phrase
+        },
+        _playersOnline);
         setTimeout(()=>{
           game = resetGame(game);
           game = rotateQueueAndReturnGame(game)
           setGameInDatabase(game);
-          io.in(game.id).emit('rotate and new round');
+          io.in(game.id).emit('rotate and new round', _playersOnline);
         }, 1000);
       } else {
         io.in(game.id).emit('incorrect letter',
-        {letter:letter, activeGuesser:activeGuesser});
+        {letter:letter, activeGuesser:activeGuesser},
+        _playersOnline);
       }
     }
   });
   socket.on('disconnect', function(){
+    console.log("Socket disconnecting. Checking socket...");
     if (!validateSocket(socket)){return "Bad Socket."};
+    console.log("Socket valid.");
     var data = getPlayerAndGameFromSocket(socket);
     var game = data.game;
     var player = data.player;
-    var timeoutLength = 30*1000;
-    setTimeout(()=>{
-      var playerInstances = incrementPlayerInstanceByToken(data.player.token,
-        game, -1);
-      if (playerInstances <= 0){
-        //Remove player and update the activeGuesser
-        var updatedGame = removePlayerFromGame(data.player, data.game);
-        socket.in(data.game.id).emit('remove player',
-        {id: data.player.id,
-          activeGuesser: updatedGame.activeGuesser});
-        socket.leave(game.id);
-        console.log(`${data.player.nickname} left room  ${_gameId}. `+
-        ` Instances: ${playerInstances}`);
+    var playerInstances = incrementPlayerInstanceByToken(player.token,
+      game, -1);
+    console.log(`${player.nickname} instances: ${playerInstances}`);
+    if (playerInstances <= 0) {
+      console.log(`Deleting ${player.nickname} from game ${game.id} in 10 seconds...`)
+      var timeoutLength = 10*1000;
+      setTimeout(()=>{
+        {
+          game = fetchGameFromDatabase(game.id);
+          if (typeof game !== "object") return;
+          playerInstances = getPlayerInstancesByToken(player.token, game);
+          if (playerInstances > 0) return;
+          var updatedGame = removePlayerFromGame(data.player, data.game);
+          if (_playersOnline > 0) _playersOnline -= 1;
+          socket.to(data.game.id).emit('remove player',
+          {id: data.player.id,
+            activeGuesser: updatedGame.activeGuesser}, _playersOnline);
+          console.log(`${data.player.nickname} left room  ${_gameId}. `+
+          ` Instances: ${playerInstances}`);
 
-        // Room empty, remove game from database
-        if (updatedGame.playerQueue.length === 0){
-          removeGameFromDatabase(game.id);
-          console.log(`${updatedGame.id} game removed.`)
-          return;
+          // Room empty, remove game from
+          if (updatedGame.playerQueue.length === 0){
+            removeGameFromDatabase(data.game.id);
+            console.log(`${updatedGame.id} game removed.`)
+            return;
+          }
         }
-      }
-    },timeoutLength);
+      },timeoutLength);
+    }
 
   })
 });
@@ -313,6 +358,17 @@ function incrementPlayerInstanceByToken(token, game, change){
       player.instances += change;
       game.playerQueue[i] = player;
       setGameInDatabase(game);
+      return player.instances;
+    }
+  }
+}
+
+function getPlayerInstancesByToken(token, game){
+  if (typeof token !== "string" || typeof game !== "object") return;
+  for (var i = 0, length = game.playerQueue.length;
+  i < length; i++){
+    player = game.playerQueue[i];
+    if (player.token == token){
       return player.instances;
     }
   }
@@ -508,7 +564,7 @@ function strippedPlayerAndGameInfo(player, gameId){
   var game = fetchGameFromDatabase(gameId);
   var playerIndex = game.playerQueue.indexOf(player);
   var strippedGame = strippedGameInfo(game);
-  return {playerIndex: playerIndex, game: strippedGame};
+  return {playerIndex: playerIndex, game: strippedGame, playersOnline: _playersOnline};
 }
 
 /**

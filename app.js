@@ -1,6 +1,7 @@
 let express = require('express');
-let app  = express();
 let  fs = require('fs');
+let app  = express();
+
 let port = process.env.PORT;
 if (port == null || port == "") {
   port = 3000;
@@ -23,7 +24,7 @@ app.use('/robots.txt', function (req, res, next) {
 // Manifest JSON
 app.use('/manifest.json', function (req, res, next){
   res.type('text/json');
-  res.sendfile(__dirname + "/manifest.webmanifest")
+  res.sendFile(__dirname + "/manifest.webmanifest")
 });
 
 

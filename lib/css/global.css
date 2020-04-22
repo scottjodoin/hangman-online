@@ -57,3 +57,83 @@ table {
      -moz-box-sizing: border-box;
           box-sizing: border-box;
 }
+body {
+  font-size: 0.7rem;
+  background-color: #EDE7F6;
+}
+.g-overlay {
+  position: fixed;
+  display: none;
+  width: 100%; height: 100%;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background-color: rgba(0,0,0,0.5);
+  z-index: 2;
+}
+a:link, a:visited, a:hover, a:active{
+  color:inherit;
+  text-decoration: none;
+}
+header{
+  padding: 10px 20px;
+  overflow: auto;
+  zoom: 1;
+}
+  .g-title-container{
+    float: left;
+    width: 30%;
+    min-width: 200px;
+  }
+    h1{
+      font-weight: bold;
+      font-size: 2rem;
+    }
+    .g-player-count{
+      float: left;
+    }
+  .g-error-wrapper-desktop{
+    display: block;
+    overflow: hidden;
+    text-align: center;
+    width: 30%;
+    min-width:160px;
+  }
+  .g-leave-wrapper{
+    text-align: right;
+    float:right;
+    width: 30%;
+    min-width: 200px;
+  }
+div{}
+span{}
+p{
+  padding: 5px 10px;
+}
+ul{
+  padding: 5px 10px;
+}
+li{
+  line-height: 1.3em;
+}
+.g-content-wrapper{
+  padding: 0px 10%;
+  overflow: auto;
+  zoom: 1;
+}
+  .g-container{
+    background-color: antiquewhite;
+    padding: 10px;
+    border: 0.3rem solid grey;
+    border-radius: 8px;
+    margin: 4px;
+  }
+
+.g-large-input{}
+input{
+  display: bloack;
+  border: 0;
+  background: transparent;
+}
+
+footer{
+  padding: 10px 20px;
+}
