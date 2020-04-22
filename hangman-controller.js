@@ -34,8 +34,10 @@ app.post('/', urlencodedParser, function(req, res){
     }
   var postType = req.body.postType;
   if (postType == "make game"){
+
     // Validate make game input
     if (typeof req.body.maxPlayers !== "string" ||
+    /[^0-9]/.test(req.body.maxPlayers) ||
       req.body.maxPlayers < 2 || req.body.maxPlayers > 10) return;
     if (typeof req.body.isPublic !== "string" ||
       !(req.body.isPublic == "true" || req.body.isPublic == "false")) return false;
