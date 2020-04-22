@@ -24,7 +24,6 @@ app.get('/', function(req, res){
 });
 
 app.post('/', urlencodedParser, function(req, res){
-  console.log(req.body);
 
   //Validate input
   if (typeof req.body !== "object") return;
@@ -33,34 +32,34 @@ app.post('/', urlencodedParser, function(req, res){
       return;
     }
   var postType = req.body.postType;
+  console.log(postType);
   if (postType == "make game"){
 
     // Validate make game input
     if (typeof req.body.maxPlayers !== "string" ||
     /[^0-9]/.test(req.body.maxPlayers) ||
       req.body.maxPlayers < 2 || req.body.maxPlayers > 10) return;
-    if (typeof req.body.isPublic !== "string" ||
-      !(req.body.isPublic == "true" || req.body.isPublic == "false")) return false;
 
     var maxPlayers = req.body.maxPlayers;
     var isPublic = req.body.isPublic == "true";
-    makeGame(res, maxPlayers, isPublic);
+    makeGame(req, res, maxPlayers, isPublic);
 
-  } else if (postType == "join game"){
-    joinGame(res);
+  } else {
+    joinGame(req, res);
   }
 });
-function joinGame(res){
+function joinGame(req, res){
   //search for public games.
   var publicGameIds = getPublicGameIds();
-  if (publicGameIds.length == 0){
-    makeGame(res, 10, true);
+  console.log(publicGameIds);
+  if (publicGameIds.length === 0){
+    makeGame(req, res, 10, true);
   } else {
     var choice = Math.floor(publicGameIds.length * Math.random());
     res.redirect("/" + publicGameIds[choice]);
   }
 }
-function makeGame(res, maxPlayers, isPublic){
+function makeGame(req, res, maxPlayers, isPublic){
 
     //Create random gameId
     var gameId = generateGameId();
