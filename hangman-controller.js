@@ -198,12 +198,11 @@ io.on('connection', function(socket){
         io.in(game.id).emit('game won', {
           phrase: game.phrase
         });
-        setTimeout(()=>{
-          game = resetGame(game);
-          game = rotateQueueAndReturnGame(game);
-          setGameInDatabase(game);
-          io.in(game.id).emit('rotate and new round');
-        },1000);
+        game = resetGame(game);
+        game = rotateQueueAndReturnGame(game);
+        setGameInDatabase(game);
+        io.in(game.id).emit('rotate and new round');
+
       } else {
         io.in(game.id).emit('correct letter',
         {phrase: getRenderedPhraseFromGame(game), activeGuesser:activeGuesser});

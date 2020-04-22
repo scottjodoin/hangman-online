@@ -11,16 +11,18 @@
   margin-left: -14px;
 }
 .jkeyboard .jline ul li {
-  font-size: 1.5rem;
+  font-size: 2vw;
   display: inline-block;
-  border: 2px solid grey;
-  margin: 10px 0 1px 14px;
+  border: 3px solid grey;
+  margin: 1% 1% 0 0;
   border-radius: 5px;
-  width: 52px;
-  height: 52px;
+  min-width: 10px;
+  min-height: 10px;
+  width: 4vw;
+  height: 4vw;
   box-sizing: border-box;
   text-align: center;
-  line-height: 52px;
+  line-height: 2em;
   overflow: hidden;
   cursor: pointer;
   -webkit-touch-callout: none;
@@ -30,9 +32,26 @@
   -ms-user-select: none;
   user-select: none;
 }
+
 .jkeyboard .jline ul li.uppercase {
   text-transform: uppercase;
 }
 .jkeyboard .jline ul li:hover, .jkeyboard .jline ul li:active {
   background-color: grey;
+}
+
+/*
+ *
+ * Phone screens
+ *
+ */
+@media screen and (max-width: 500px){
+  .jkeyboard .jline ul li {
+    font-size: 3.5vw;
+
+    margin: 1% 1% 1% 0;
+    width: 7.5vw;
+    height: 7.5vw;
+  }
+
 }

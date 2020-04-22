@@ -1,7 +1,9 @@
 <!DOCTYPE html>
 <html lang="en" dir="ltr">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
   <head>
     <meta charset="utf-8">
+    <link rel="manifest" href="/manifest.json">
     <link rel="stylesheet" type="text/css" href="/css/global.css">
     <link rel="stylesheet" type="text/css" href="/css/index.css">
     <link rel="stylesheet" href="/css/jkeyboard.css">
@@ -13,18 +15,21 @@
     <div  class="g-overlay" >
       <div id="overlay-phrase-container" class="g-container">
         <h1>Choose a Word</h1>
-        <label for="game-id">Copy and share with your friends:</label>
-        <input type="text" class="game-id" name="game-id"
-        autocomplete="off" readonly>
+        <div id="overlay-word-rejected" style="display:none">Word rejected. Scrabble words only.</div>
         <form class="g-large-input">
           <input id="phrase-input" type="text"
           autocomplete="off" required="true" maxlength="27"
           name="phrase" placeholder="Word or phrase*"/>
           <input id="hint-input" type="text"
-          autocomplete="off" required="true" maxlength="27"
+          autocomplete="off" maxlength="27"
           name="hint" placeholder="Hint or category*"/>
           <input id="submit-button" type="submit" value="✔️" />
         </form>
+
+        <label for="game-id">Copy and share with your friends:</label>
+        <input type="text" class="game-id" name="game-id"
+        autocomplete="off" readonly
+        onclick="this.setSelectionRange(0, this.value.length);">
       </div>
     </div>
 
@@ -36,10 +41,10 @@
       </span>
       <span class="g-leave-wrapper">
         <p id="player-name">&nbsp</p>
-        <p><a href="">Leave game</a></p>
+        <p><a href="/">Leave game</a></p>
       </span>
-      <span class="g-error-wrapper">
-        <p id="error-message">Here is a message</p>
+      <span class="g-error-wrapper-desktop">
+        <p class="error-message">Here is a message</p>
       </span>
     </header>
     <!-- Content -->
@@ -49,7 +54,11 @@
         <div id="hangman-wrapper" class="g-container">
           <img id="hangman-image" src ="/img/hangman.svg"/>
         </div>
+        <div class="error-wrapper-mobile" >
+          <p class="error-message">Here is a message</p>
+        </div>
       </span>
+
 
       <!-- Right -->
       <span id="right-container" >
@@ -71,7 +80,7 @@
 
     <!-- Footer -->
     <footer class="g-footer">
-      <p><a href="">About me..</a></p>
+      <p><a href=""></a></p>
     </footer>
     <script>SVGInject(document.getElementById('hangman-image'));</script>
     <script src="/socket.io/socket.io.js"></script>

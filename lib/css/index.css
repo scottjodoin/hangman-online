@@ -10,6 +10,10 @@ body {
   background-color: rgba(0,0,0,0.5);
   z-index: 2;
 }
+a:link, a:visited, a:hover, a:active{
+  color:inherit;
+  text-decoration: none;
+}
 header{
   padding: 10px 20px;
   overflow: auto;
@@ -27,7 +31,8 @@ header{
     .g-player-count{
       float: left;
     }
-  .g-error-wrapper{
+  .g-error-wrapper-desktop{
+    display: block;
     overflow: hidden;
     text-align: center;
     width: 30%;
@@ -48,6 +53,7 @@ ul{
   padding: 5px 10px;
 }
 li{
+  line-height: 1.3em;
 }
 .g-content-wrapper{
   padding: 0px 10%;
@@ -74,10 +80,52 @@ footer{
 }
 
 /*TODO: http://learnlayout.com/media-queries.html */
+/* Overlay container */
+#overlay-phrase-container{
+  position: absolute;
+  min-width: 470px;
+  min-height: 75px;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%,-50%);
+  -ms-transform: translate(-50%,-50%);
+}
+
+/*   Left Container   */
 #left-container{
+  position:relative;
   float:left;
   width:30%;
 }
+
+  #hangman-wrapper{
+    width:98%;
+    float:left;
+    text-align: center;
+    vertical-align: middle;
+  }
+    #hangman-image{
+      width: 100%;
+    }
+  .error-wrapper-mobile {
+    display: none;
+    float:right;
+    width:50%;
+  }
+/* Right Container */
+#right-container{
+  float:left;
+  width: 70%;
+}
+  .game-id{
+    padding: 1%;
+    background: lightgray;
+    width: 100%;
+    box-sizing: border-box;
+  }
+  #phrase-container{
+    position: relative;
+  }
   #name-container{
     width: auto;
   }
@@ -86,31 +134,19 @@ footer{
     .host{
       font-weight: bolder;
     }
-  #hangman-wrapper{
-    text-align: center;
-    vertical-align: middle;
-  }
-    #hangman-image{
-      width: 100%;
+    #hint-display,#guessed-letters-display{
+      padding: 0.5em 0em 0.5em 0em ;
+      font-size: 1rem;
+      width: 60%;
+      text-transform: uppercase;
     }
-#right-container{
-  float:left;
-  width: 70%;
-}
-  #overlay-phrase-container{
-    position: absolute;
-    min-width: 470px;
-    min-height: 75px;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%,-50%);
-    -ms-transform: translate(-50%,-50%);
-  }
-  #phrase-container{
-    position: relative;
-  }
-    #hint-display,#guessed-letters-display, #hint-input{
-      padding: 0.5em 0em ;
+    #phrase-input{
+      margin: 1em 0 0 0;
+    }
+     #hint-input{
+      box-sizing: border-box;
+      padding: 0.5em 0em 0.5em 0em ;
+      margin: 0 0 2em 0;
       font-size: 1rem;
       width: 50%;
       text-transform: uppercase;
@@ -134,5 +170,37 @@ footer{
       width: 3rem;
       cursor: pointer;
     }
-  #keyboard-container{
+
+@media screen and (max-width: 500px){
+  .g-content-wrapper{
+    padding: 0px 3%;
+    overflow: auto;
+    zoom: 1;
   }
+  .g-error-wrapper-desktop{
+    display: none;
+  }
+  .error-wrapper-mobile{
+    display:block;
+    position:absolute;
+    right:0px;
+    bottom:0px;
+    width: 50%;
+    text-align: center;
+  }
+  #hangman-wrapper{
+    width: 40vw;
+  }
+  #overlay-phrase-container{
+    width: 95%;
+  }
+  #left-container{
+    width:100%;
+  }
+  #right-container{
+    width: 100%;
+  }
+  #keyboard-container{
+    padding: 1em 0 1em 0;
+  }
+}

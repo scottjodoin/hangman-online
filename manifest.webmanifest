@@ -1,0 +1,8 @@
+{
+  "short_name": "Hangman",
+  "name": "Hangman with friends",
+  "description": "Free game for up to 10 players.",
+  "display": "standalone",
+  "scope": "/",
+  "theme_color": "#EDE7F6"
+}
