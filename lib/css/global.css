@@ -140,7 +140,7 @@ li{
 
 .g-large-input{}
 input{
-  display: bloack;
+  display: block;
   border: 0;
   background: transparent;
 }

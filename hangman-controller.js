@@ -24,37 +24,66 @@ app.get('/', function(req, res){
 });
 
 app.post('/', urlencodedParser, function(req, res){
-  //Get maxPlayers from form
+  console.log(req.body);
+
+  //Validate input
   if (typeof req.body !== "object") return;
-  if (typeof req.body.maxPlayers !== "string" ||
-    req.body.maxPlayers < 2 || req.body.maxPlayers > 10) return;
-    console.log("yo");
-  var maxPlayers = req.body.maxPlayers;
+  if (typeof req.body.postType !== "string" ||
+    !(req.body.postType == "join game" || req.body.postType == "make game")){
+      return;
+    }
+  var postType = req.body.postType;
+  if (postType == "make game"){
+    // Validate make game input
+    if (typeof req.body.maxPlayers !== "string" ||
+      req.body.maxPlayers < 2 || req.body.maxPlayers > 10) return;
+    if (typeof req.body.isPublic !== "string" ||
+      !(req.body.isPublic == "true" || req.body.isPublic == "false")) return false;
 
-  //Create random gameId
-  var gameId = generateGameId();
+    var maxPlayers = req.body.maxPlayers;
+    var isPublic = req.body.isPublic == "true";
+    makeGame(maxPlayers, isPublic);
 
-  //if it is, then create a game!
-
-  game = {
-    id: gameId,
-    playerQueue: [],
-    guessedLetters: "",
-    phrase: "",
-    hint: "",
-    maxPlayers: maxPlayers,
-    gamePhase: GAME_PHASE.SELECTION,
-    activeGuesser: -1 //set to 1 when second player joins.
+  } else if (postType == "join game"){
+    joinGame(res);
   }
-
-  setGameInDatabase(game);
-
-  res.redirect('/' + gameId);
 });
+function joinGame(res){
+  //search for public games.
+  var publicGameIds = getPublicGameIds();
+  if (publicGameIds.length == 0){
+    makeGame(res, 10, true);
+  } else {
+    var choice = Math.floor(publicGameIds.length * Math.random());
+    res.redirect("/" + publicGameIds[choice]);
+  }
+}
+function makeGame(res, maxPlayers, isPublic){
+
+    //Create random gameId
+    var gameId = generateGameId();
+
+    //if it is, then create a game!
+
+    game = {
+      id: gameId,
+      isPublic: isPublic,
+      playerQueue: [],
+      guessedLetters: "",
+      phrase: "",
+      hint: "",
+      maxPlayers: maxPlayers,
+      gamePhase: GAME_PHASE.SELECTION,
+      activeGuesser: -1 //set to 1 when second player joins.
+    }
+
+    setGameInDatabase(game);
+
+    res.redirect('/' + gameId);
+}
 
 //gameId
 app.get("/:id([A-Za-z0-9]{6})", function(req, res, next){
-  console.log(req.originalUrl + ":" + (req.cookies.token || "no token..."))
   if (/[^A-Za-z0-9\-\.\/\:]/.test(req.originalUrl)){
     setTimeout(()=>{
     res.redirect(req.originalUrl.split(/[^A-Za-z0-9\-\.\/\:]/)[0]);
@@ -93,15 +122,11 @@ app.use(function (req, res, next) {
 
 // Socket routing
 io.on('connection', function(socket){
-    console.log("Connection made. Validating socket...")
   if (!validateSocket(socket)){console.log("Bad Socket."); return;};
   // Initialize or gather player
   var _gameId = parseGameIdFromSocket(socket);
   var token = getPlayerTokenFromSocket(socket);
-  console.log("Socket valid. Token = " + token || "undefined")
-  console.log("Checking if game exists...");
   if (!databaseHasGameById(_gameId)) return;
-  console.log("Game exists.");
   var game = fetchGameFromDatabase(_gameId);
   var player;
   var playerInstances;
@@ -115,10 +140,8 @@ io.on('connection', function(socket){
   } else {
     if (typeof token !== "string" || token.length !== 40 ||
       /[^a-z0-9]/.test(token)) {return "Bad token!"};
-    console.log("Token exists. Checking to see if in game already...");
     player = getPlayerUsingToken(token, game);
     if (player === "Not Found!"){
-      console.log("Not in the game already. Adding new player.");
       // Player has visited this website, but not this game.
       player = addNewPlayerAndReturn(game);
       token = player.token
@@ -126,7 +149,6 @@ io.on('connection', function(socket){
       socket.emit('set cookie', {value: player.token, options: {expires: 1}},
       _playersOnline)
     } else {
-      console.log("Player found! Adding instance.");
       var playerInstances = incrementPlayerInstanceByToken(token, game, 1);
     }
   }
@@ -138,7 +160,6 @@ io.on('connection', function(socket){
     socket.emit('reset information', stripped, _playersOnline);
     socket.to(game.id).emit('new player',
       {playerId: player.id, nickname: player.nickname}, _playersOnline);
-    console.log(player.nickname + ' joined room ' + game.id + ". Instance: " + playerInstances);
 
   });
 
@@ -211,7 +232,6 @@ io.on('connection', function(socket){
     letter = letter.toLowerCase();
     if (game.guessedLetters.includes(letter)) return;//No penalty if guessed
     game.guessedLetters += letter;
-    console.log(`${data.player.nickname} tried ${letter}: Guessed letters: ${data.game.guessedLetters}`);
 
     //advance player
     var activeGuesser = getNewActiveGuesserIndex(game);
@@ -244,7 +264,6 @@ io.on('connection', function(socket){
     } else {
       // bad letter
       var incorrectLetters = getIncorrectGuesses(game);
-      console.log(incorrectLetters);
       if (incorrectLetters >= 7){
         // end game
         io.in(game.id).emit('game lost',
@@ -267,17 +286,13 @@ io.on('connection', function(socket){
     }
   });
   socket.on('disconnect', function(){
-    console.log("Socket disconnecting. Checking socket...");
     if (!validateSocket(socket)){return "Bad Socket."};
-    console.log("Socket valid.");
     var data = getPlayerAndGameFromSocket(socket);
     var game = data.game;
     var player = data.player;
     var playerInstances = incrementPlayerInstanceByToken(player.token,
       game, -1);
-    console.log(`${player.nickname} instances: ${playerInstances}`);
     if (playerInstances <= 0) {
-      console.log(`Deleting ${player.nickname} from game ${game.id} in 10 seconds...`)
       var timeoutLength = 10*1000;
       setTimeout(()=>{
         {
@@ -290,8 +305,6 @@ io.on('connection', function(socket){
           socket.to(data.game.id).emit('remove player',
           {id: data.player.id,
             activeGuesser: updatedGame.activeGuesser}, _playersOnline);
-          console.log(`${data.player.nickname} left room  ${_gameId}. `+
-          ` Instances: ${playerInstances}`);
 
           // Room empty, remove game from
           if (updatedGame.playerQueue.length === 0){
@@ -307,6 +320,16 @@ io.on('connection', function(socket){
 });
 
 // User Functions
+
+function getPublicGameIds(){
+  var games = [];
+  for (var game in _games){
+    if (_games.hasOwnProperty(game)){
+      if (_games[game].isPublic) games.push(_games[game].id);
+    }
+  }
+  return games;
+}
 
 function validateSocket(socket){
   if (typeof socket !== "object" || typeof socket.request !== "object" ||

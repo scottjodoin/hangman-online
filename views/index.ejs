@@ -32,13 +32,26 @@
 
       <!-- Right -->
       <span id="right-container">
-        <div id="button-wrapper" class="g-container">
-          <form class=""  method="post">
+        <div id="make-game-container" class="g-container">
+          <form class="large-input"  method="post">
+            <input type="hidden" id="join-game" name="postType" value="make game" />
             <label for="name">Max No. of Players:</label>
-            <input id="max-player-input" type="number" name="maxPlayers" value=4 min="2" max="10">
-            <button type="submit" onclick>New Game</button>
+            <input id="max-player-input" type="number" name="maxPlayers" value=4 min="2" max="10" />
+            <input type="hidden" value="false" name="checkbox-public" />
+            <label for="checkbox-public">Make game public.</label>
+            <input id="checkbox-public" type="checkbox" name="isPublic" value="true" checked />
+            <button id="button-make-game" type="submit" >New Game</button>
           </form>
         </div>
+        <div id="join-game-container" class="g-container">
+
+          <form class="joining-form" method="post">
+            <input type="hidden" id="join-game" name="postType" value="join game" />
+            <label for="button-join-game">Join a random public game.</label>
+            <button id="button-join-game" type="submit">Join</button>
+          </form>
+        </div>
+
       </span>
     </div>
 
