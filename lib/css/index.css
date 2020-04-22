@@ -83,8 +83,6 @@ footer{
 /* Overlay container */
 #overlay-phrase-container{
   position: absolute;
-  min-width: 470px;
-  min-height: 75px;
   top: 50%;
   left: 50%;
   transform: translate(-50%,-50%);
