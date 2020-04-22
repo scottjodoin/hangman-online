@@ -44,7 +44,7 @@ app.post('/', urlencodedParser, function(req, res){
 
     var maxPlayers = req.body.maxPlayers;
     var isPublic = req.body.isPublic == "true";
-    makeGame(maxPlayers, isPublic);
+    makeGame(res, maxPlayers, isPublic);
 
   } else if (postType == "join game"){
     joinGame(res);
