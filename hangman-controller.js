@@ -21,11 +21,14 @@ module.exports = function(app, io, wordArray) {
 //html routing
 app.get('/', function(req, res){
   res.render('index', {playersOnline: _playersOnline})
-  res.sendFile(__dirname +  '/index.html');
 });
 
 app.post('/', urlencodedParser, function(req, res){
   //Get maxPlayers from form
+  if (typeof req.body !== "object") return;
+  if (typeof req.body.maxPlayers !== "string" ||
+    req.body.maxPlayers < 2 || req.body.maxPlayers > 10) return;
+    console.log("yo");
   var maxPlayers = req.body.maxPlayers;
 
   //Create random gameId
