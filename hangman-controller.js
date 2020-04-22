@@ -495,10 +495,15 @@ function parseGameIdFromSocket(socket){
   * Genearates a 6-character game id to insert into the database
   */
 function generateGameId(){
-  let gameId;
+  let gameId = "";
+  let characterOptions = "ABCDEFGHJKMNPQRSTUVWXYZ23456789";
   let isInDatabase = true;
   while (isInDatabase){
-    gameId =  Math.random().toString(36).substring(3,9).toUpperCase();
+    gameId = "";
+    for (var i = 0; i < 6; i ++){
+      gameId += characterOptions.charAt(
+        Math.floor(Math.random() * Math.floor(31)));
+    }
     isInDatabase = databaseHasGameById(gameId);
   }
   return gameId;
