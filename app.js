@@ -15,6 +15,14 @@ const wordArray = fs.readFileSync(__dirname + "/words.txt", 'utf8').split('\n');
 // set up express and socket.io cookies
 app.use(cookieParser());
 
+//No need to use HTTPS, and lying is annoying.
+app.use(function(req, res, next) {
+  if(req.secure) {
+    return res.redirect(['http://', req.get('Host'), req.url].join(''));
+  }
+  next();
+});
+
 // Filter out fb and google spiders.
 app.use('/robots.txt', function (req, res, next) {
     res.type('text/plain')
