@@ -148,3 +148,24 @@ input{
 footer{
   padding: 10px 20px;
 }
+label {
+	margin-top: 1vw;
+}
+.main-input {
+	background-color: lightgray;
+  font-size: 1.1em;
+  border: 3px solid grey;
+  margin: 0.5em 0 1.5em 0;
+  border-radius: 5px;
+  min-width: 20px;
+  min-height: 20px;
+  box-sizing: border-box;
+  text-align: center;
+  line-height: 2em;
+  overflow: hidden;
+  cursor: pointer;
+}
+
+button:after {
+	background-color: grey;
+}

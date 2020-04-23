@@ -41,6 +41,9 @@
     width: 100%;
     box-sizing: border-box;
   }
+  #make-game-container{
+    position:relative;
+  }
   #phrase-container{
     position: relative;
   }
@@ -121,5 +124,15 @@
   }
   #keyboard-container{
     padding: 1em 0 1em 0;
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    -khtml-user-select: none;
+    -moz-user-select: -moz-none;
+    -ms-user-select: none;
+    user-select: none;
+  }
+  #make-game-container, #join-game-container{
+    float:left;
+    width:43%;
   }
 }

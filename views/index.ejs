@@ -23,20 +23,20 @@
       <!-- Left -->
       <span id="left-container">
         <div id="hangman-wrapper" class="g-container">
-          <img id="hangman-image" src ="/img/hangman.svg"/>
+          <img id="hangman-image" src ="/img/hangman-show.svg"/>
         </div>
       </span>
 
       <!-- Right -->
       <span id="right-container">
         <div id="make-game-container" class="g-container">
-          <form class="large-input"  method="post">
+          <form  method="post">
             <input type="hidden" id="join-game" name="postType" value="make game" />
             <label for="name">Max No. of Players:</label>
-            <input id="max-player-input" type="number" name="maxPlayers" value=4 min="2" max="10" />
+            <input class="main-input" id="max-player-input" type="number" name="maxPlayers" value=4 min="2" max="10" />
             <label for="checkbox-public">Make game public.</label>
-            <input id="checkbox-public" type="checkbox" name="isPublic" value="true" checked />
-            <button id="button-make-game" type="submit" >New Game</button>
+            <input class="main-input" id="checkbox-public" type="checkbox" name="isPublic" value="true" checked />
+            <button class="main-input" id="button-make-game" type="submit" >New Game</button>
           </form>
         </div>
         <div id="join-game-container" class="g-container">
@@ -44,10 +44,9 @@
           <form class="joining-form" method="post">
             <input type="hidden" id="join-game" name="postType" value="join game" />
             <label for="button-join-game">Join a random public game.</label>
-            <button id="button-join-game" type="submit">Join</button>
+            <button class="main-input" id="button-join-game" type="submit">Join</button>
           </form>
         </div>
-
       </span>
     </div>
 
