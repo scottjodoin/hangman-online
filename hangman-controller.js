@@ -255,6 +255,7 @@ io.on('connection', function(socket){
       } else {
         io.in(game.id).emit('correct letter',
         {
+          letter: letter,
           phrase: getRenderedPhraseFromGame(game),
           activeGuesser:activeGuesser
         },

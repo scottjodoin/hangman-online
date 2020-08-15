@@ -1,6 +1,7 @@
 .jkeyboard {
   display: inline-block;
 }
+
 .jkeyboard, .jkeyboard .jline, .jkeyboard .jline ul {
   display: block;
   margin: 0;
@@ -36,7 +37,7 @@
 .jkeyboard .jline ul li.uppercase {
   text-transform: uppercase;
 }
-.jkeyboard .jline ul li:hover, .jkeyboard .jline ul li:active {
+.jkeyboard .jline ul li:hover, .already-selected, .jkeyboard .jline ul li:active {
   background-color: grey;
 }
 
