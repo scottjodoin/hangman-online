@@ -15,7 +15,9 @@ const wordArray = fs.readFileSync(__dirname + "/words.txt", 'utf8').split('\n');
 // set up express and socket.io cookies
 app.use(cookieParser());
 
-//No need to use HTTPS, and lying is annoying.
+// No need to use HTTPS as there is no secure data and don't want to
+// pay for digital signing
+
 app.use(function(req, res, next) {
   if(req.secure) {
     return res.redirect(['http://', req.get('Host'), req.url].join(''));

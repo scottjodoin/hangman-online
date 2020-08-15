@@ -116,8 +116,7 @@ app.get("/:id([A-Za-z0-9]{6})", function(req, res, next){
 
 //404
 app.use(function (req, res, next) {
-
-  res.status(404).send("Hangman - 404 - Sorry can't find that!");
+  res.status(404).redirect("/");
 });
 
 
@@ -661,6 +660,7 @@ const socketSchema = {
     }
   }
 }
+
 const playerSchemaSimple = {
   id: {
     type: "string",
